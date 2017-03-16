@@ -578,11 +578,8 @@ namespace eudaq {
                eudaq::EventUP nev = eudaq::RawDataEvent::MakeUnique("CaliceObject");
                eudaq::RawDataEvent *nev_raw = dynamic_cast<RawDataEvent*>(nev.get());
                prepareEudaqRawPacket(nev_raw);
-               nev->SetTag("ROC", roc);
-<<<<<<< HEAD
-=======
+               //nev->SetTag("ROC", roc);
                nev->SetTag("ROCStartTS", startTS);
->>>>>>> develop
                nev->SetTriggerN(rawTrigId - _producer->getLdaTrigidOffset());
                if (startTS && (!_producer->getIgnoreLdaTimestamps())) {
                   nev->SetTimestampBegin(startTS + _producer->getAhcalbxid0Offset() + bxid * _producer->getAhcalbxidWidth() - 1);
@@ -683,9 +680,7 @@ namespace eudaq {
             eudaq::EventUP nev = eudaq::RawDataEvent::MakeUnique("CaliceObject");
             eudaq::RawDataEvent *nev_raw = dynamic_cast<RawDataEvent*>(nev.get());
             prepareEudaqRawPacket(nev_raw);
-            nev->SetTag("ROC", roc);
-<<<<<<< HEAD
-=======
+            //nev->SetTag("ROC", roc);
             if (_LDATimestampData.count(roc)) {
                nev->SetTag("ROCStartTS", startTS);
                std::vector<uint32_t> cycledata;
@@ -704,7 +699,6 @@ namespace eudaq {
                }
                nev_raw->AppendBlock(6, cycledata);
             }
->>>>>>> develop
 
             if (startTS && (!_producer->getIgnoreLdaTimestamps())) {
                nev->SetTimestampBegin(startTS + _producer->getAhcalbxid0Offset() + bxid * _producer->getAhcalbxidWidth() - 1);
@@ -746,10 +740,7 @@ namespace eudaq {
          }
          //nev->Print(std::cout, 0);
          if (_LDATimestampData.count(roc) && (!_producer->getIgnoreLdaTimestamps())) {
-<<<<<<< HEAD
-=======
             nev->SetTag("ROCStartTS", _LDATimestampData[roc].TS_Start);
->>>>>>> develop
             if (_LDATimestampData[roc].TS_Start && _LDATimestampData[roc].TS_Stop) {
                //save timestamp only if both timestamps are present. Otherwise there was something wrong in the data
                nev->SetTimestamp(_LDATimestampData[roc].TS_Start, _LDATimestampData[roc].TS_Stop, true);
@@ -842,11 +833,8 @@ namespace eudaq {
                      }
                      break;
                }
-               nev->SetTag("ROC", roc);
-<<<<<<< HEAD
-=======
+               //nev->SetTag("ROC", roc);
                nev->SetTag("ROCStartTS", _LDATimestampData[roc].TS_Start);
->>>>>>> develop
                //copy the ahcal data
                if (i == (_LDATimestampData[roc].TS_Triggers.size() - 1)) {
                   //the last triggerID in the vector

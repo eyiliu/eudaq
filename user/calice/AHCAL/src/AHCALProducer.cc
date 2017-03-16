@@ -59,12 +59,9 @@ namespace eudaq {
                _waitmsFile(0),
                _waitsecondsForQueuedEvents(2),
                _writerawfilename_timestamp(true),
-<<<<<<< HEAD
-               _writeRaw(true)
-=======
                _writeRaw(true),
                _StartWaitSeconds(0)
->>>>>>> develop
+
    {
       m_id_stream = eudaq::cstr2hash(name.c_str());
    }
@@ -109,10 +106,7 @@ namespace eudaq {
       _AHCALBXIDWidth = param.Get("AHCALBXIDWidth", 160); //4us Testbeam mode is default
       _GenerateTriggerIDFrom = param.Get("GenerateTriggerIDFrom", 0);
       _IgnoreLdaTimestamps = param.Get("IgnoreLdaTimestamps", 0);
-<<<<<<< HEAD
-=======
       _StartWaitSeconds = param.Get("StartWaitSeconds", 0);
->>>>>>> develop
 
       _InsertDummyPackets = param.Get("InsertDummyPackets", 0);
       _DebugKeepBuffered = param.Get("DebugKeepBuffered", 0);

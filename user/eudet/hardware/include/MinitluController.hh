@@ -116,7 +116,7 @@ namespace tlu {
     uint32_t ReadRRegister(const std::string & name);
 
     void SetUhalLogLevel(uchar_t l);
-	//RUBBISH
+	
 	
 	void SetI2C_core_addr(char addressa) { m_I2C_address.core = addressa; };
 	void SetI2C_clockChip_addr(char addressa) { m_I2C_address.clockChip = addressa; };
