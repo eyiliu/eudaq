@@ -24,7 +24,7 @@ namespace eudaq {
       EUDAQ_INFO("Initializing ...(" + conf->Name() + ")");
       DoInitialise();
       EUDAQ_INFO("Initialized");
-      SetStatus(Status::STATE_UNCONF, "Initializd");
+      SetStatus(Status::STATE_UNCONF, "Initialized");
     }catch (const std::exception &e) {
       printf("Caught exception: %s\n", e.what());
       SetStatus(Status::STATE_ERROR, "Init Error");
@@ -62,6 +62,7 @@ namespace eudaq {
 	EUDAQ_THROW("OnStartRun can not be called unless in STATE_CONF");
       EUDAQ_INFO("Start Run: "+ std::to_string(GetRunNumber()));
       m_evt_c = 0;
+      std::this_thread::sleep_for(std::chrono::seconds(2));
       DoStartRun();
       SetStatus(Status::STATE_RUNNING, "Started");
     }catch (const std::exception &e) {

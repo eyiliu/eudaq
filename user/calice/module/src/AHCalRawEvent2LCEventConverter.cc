@@ -8,12 +8,11 @@ namespace eudaq{
 
   using namespace std;
   using namespace lcio;
-
   
   class AHCalRawEvent2LCEventConverter: public LCEventConverter{
   public:
     bool Converting(EventSPC d1, LCEventSP d2, ConfigurationSPC conf) const override;
-    static const uint32_t m_id_factory = cstr2hash("AHCalRawDataEvent");
+    static const uint32_t m_id_factory = cstr2hash("CaliceObject");
   private:
     LCCollectionVec* createCollectionVec(lcio::LCEvent &result, string colName, string dataDesc, time_t timestamp, int DAQquality ) const;
     void getScCALTemperatureSubEvent(const std::vector<uint8_t> &bl, LCCollectionVec *col) const;
@@ -150,9 +149,9 @@ namespace eudaq{
 	auto& bl6 = rawev->GetBlock(6);
 	if(bl6.size()==0)   cout << "Nothing in Timestamps collection..." << endl;
 	if(bl6.size()>0) {
-	  cout << "Looking for Timestamps collection..." << endl;
+	  //cout << "Looking for Timestamps collection..." << endl;
 	  LCCollectionVec *col = 0;
-	  col=createCollectionVec(result,"TimeStamps", "Start:Stop:BusyOn:BusyOff:Trig", timestamp, DAQquality);
+	  col=createCollectionVec(result,"TimeStamps", "i:StartTS_L;i:StartTS_H;i:StopTS_L;i:StopTS_H;i:TrigTS_L;i:TrigTS_H", timestamp, DAQquality);
 	  getDataLCIOGenericObject(bl6,col,nblock);
 	}
 

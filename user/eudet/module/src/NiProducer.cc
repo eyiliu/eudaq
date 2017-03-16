@@ -24,20 +24,16 @@ private:
   std::thread m_thd_data;
   std::shared_ptr<NiController> ni_control;
   
-  uint32_t datalength1;
-  uint32_t datalength2;
   uint32_t ConfDataLength;
   std::vector<uint8_t> ConfDataError;
 
   uint32_t TriggerType;
   uint32_t Det;
-  uint32_t Mode;
   uint32_t NiVersion;
   uint32_t NumBoards;
   uint32_t FPGADownload;
   uint32_t MimosaID[6];
   uint32_t MimosaEn[6];
-  bool OneFrame;
   bool NiConfig;
   
   unsigned char conf_parameters[10];
@@ -65,13 +61,27 @@ void NiProducer::DataLoop(){
   ni_control->Start();
   bool isbegin = true;
   while(1){
+    if(!m_running){
+      if(isbegin)
+	break;
+      auto evup = eudaq::Event::MakeUnique("NiRawDataEvent");
+      evup->SetEORE();
+      evup->SetFlagFake();
+      SendEvent(std::move(evup));
+      break;
+    } 
+    if(!ni_control->DataTransportClientSocket_Select()){
+      continue;
+    }
+
     auto evup = eudaq::Event::MakeUnique("NiRawDataEvent");
-    datalength1 = ni_control->DataTransportClientSocket_ReadLength("priv");
+    uint32_t datalength1 = ni_control->DataTransportClientSocket_ReadLength();
     std::vector<uint8_t> mimosa_data_0(datalength1);
     mimosa_data_0 = ni_control->DataTransportClientSocket_ReadData(datalength1);
-    datalength2 = ni_control->DataTransportClientSocket_ReadLength("priv");
+    uint32_t datalength2 = ni_control->DataTransportClientSocket_ReadLength();
     std::vector<uint8_t> mimosa_data_1(datalength2);
     mimosa_data_1 = ni_control->DataTransportClientSocket_ReadData(datalength2);
+    
     evup->AddBlock(0, mimosa_data_0);
     evup->AddBlock(1, mimosa_data_1);
     if(isbegin){
@@ -85,14 +95,28 @@ void NiProducer::DataLoop(){
       for (size_t i = 0; i < 6; i++)
 	evup->SetTag("MIMOSA_EN" + std::to_string(i), std::to_string(MimosaEn[i]));
     }
-    if(!m_running){
-      evup->SetEORE();
-      SendEvent(std::move(evup));
-      break;
-    }    
     SendEvent(std::move(evup));
   }
   ni_control->Stop();
+  std::chrono::milliseconds ms_dump(1000);
+  auto tp_beg = std::chrono::steady_clock::now();
+  auto tp_end = tp_beg + ms_dump;
+  while(1){
+    if(ni_control->DataTransportClientSocket_Select()){
+      uint32_t datalength1 = ni_control->DataTransportClientSocket_ReadLength();
+      std::vector<uint8_t> mimosa_data_0(datalength1);
+      mimosa_data_0 = ni_control->DataTransportClientSocket_ReadData(datalength1);
+      uint32_t datalength2 = ni_control->DataTransportClientSocket_ReadLength();
+      std::vector<uint8_t> mimosa_data_1(datalength2);
+      mimosa_data_1 = ni_control->DataTransportClientSocket_ReadData(datalength2);
+    }
+    auto tp_now = std::chrono::steady_clock::now();
+    if(tp_now>tp_end){
+      if(ni_control->DataTransportClientSocket_Select())
+	EUDAQ_WARN("There are more events which are not dumpped from labview.");
+      break;
+    }
+  }
 }
 
 void NiProducer::DoConfigure() {
@@ -112,7 +136,6 @@ void NiProducer::DoConfigure() {
 
   TriggerType = conf->Get("TriggerType", 255);
   Det = conf->Get("Det", 255);
-  Mode = conf->Get("Mode", 255);
   NiVersion = conf->Get("NiVersion", 255);
   NumBoards = conf->Get("NumBoards", 255);
   FPGADownload = conf->Get("FPGADownload", 1);
@@ -120,9 +143,6 @@ void NiProducer::DoConfigure() {
     MimosaID[i] = conf->Get("MimosaID_" + std::to_string(i + 1), 255);
     MimosaEn[i] = conf->Get("MimosaEn_" + std::to_string(i + 1), 255);
   }
-  OneFrame = conf->Get("OneFrame", 255);
-
-  std::cout << "Configuring ...(" << conf->Name() << ")" << std::endl;
 
   conf_parameters[0] = NiVersion;
   conf_parameters[1] = TriggerType;
@@ -140,7 +160,7 @@ void NiProducer::DoConfigure() {
   ni_control->ConfigClientSocket_Send(conf_parameters,
 				      sizeof(conf_parameters));
 
-  ConfDataLength = ni_control->ConfigClientSocket_ReadLength("priv");
+  ConfDataLength = ni_control->ConfigClientSocket_ReadLength();
   ConfDataError = ni_control->ConfigClientSocket_ReadData(ConfDataLength);
 
   NiConfig = false;
@@ -205,7 +225,6 @@ void NiProducer::DoStopRun() {
     m_thd_data.join();
 }
 
-
 void NiProducer::DoReset(){
   m_running = false;
   if(m_thd_data.joinable())
@@ -215,7 +234,6 @@ void NiProducer::DoReset(){
 }
 
 void NiProducer::DoTerminate() {
-  std::cout << "Terminate (press enter)" << std::endl;
   m_running = false;
   if(m_thd_data.joinable()){
     m_thd_data.join();

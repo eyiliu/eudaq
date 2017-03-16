@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <thread>
 #include <chrono>
+#include <bitset>
 
 #include "uhal/uhal.hpp"
 
@@ -78,69 +79,94 @@ namespace tlu {
     return e;
   }
 
+	uint32_t miniTLUController::I2C_enable(char EnclustraExpAddr)
+	// This must be executed at least once after powering up the TLU or the I2C bus will not work.
+	{
+		std::cout << "  Enabling I2C bus" << std::endl;
+		WriteI2CChar(EnclustraExpAddr, 0x01, 0x7F);
+		char res= ReadI2CChar(EnclustraExpAddr, 0x01);
+		std::bitset<8> resbit(res);
+		if (resbit.test(7))
+		{
+			std::cout << "\tEnabling Enclustra I2C bus might have failed. This might prevent from talking to the I2C slaves on the TLU." << int(res) << std::endl;
+		}else{
+			std::cout << "\t Success." << std::endl;
+		}
+	}
   
-  void miniTLUController::InitializeI2C(char DACaddr, char IDaddr) {
+  
+  //void miniTLUController::InitializeI2C(char DACaddr, char IDaddr) {
+  void miniTLUController::InitializeI2C() {
     SetI2CClockPrescale(0x30);
     SetI2CClockPrescale(0x30);
     SetI2CControl(0x80);
     SetI2CControl(0x80);
+	
+	char DACaddr= m_I2C_address.DAC1;
+	char IDaddr= m_I2C_address.EEPROM;
+	
+	std::ios::fmtflags coutflags( std::cout.flags() );// Store cout flags to be able to restore them
+	//First we need to enable the enclustra I2C expander or we will not see any I2C slave past on the TLU
+	I2C_enable(m_I2C_address.core);
     
     std::cout << "Scan I2C bus:" << std::endl;
     for(int myaddr = 0; myaddr < 128; myaddr++) {
-      SetI2CTX((myaddr<<1)|0x0);
-      SetI2CCommand(0x90); // 10010000
-      while(I2CCommandIsDone()) { // xxxxxx1x   TODO:: isDone or notDone
-	std::this_thread::sleep_for(std::chrono::seconds(1));
-      }
-      bool isConnected = (((GetI2CStatus()>>7)&0x1) == 0);  // 0xxxxxxx connected
-      if(myaddr == DACaddr) {
-	if (isConnected) { 
-	  std::cout << "DAC at addr 0x" << std::hex << myaddr << std::dec<< " is connected" << std::endl;
-	  m_DACaddr = myaddr;
-	} else {
-	  std::cout << "DAC at addr 0x" << std::hex << DACaddr << std::dec<<" is NOT connected" << std::endl;
-	}
-      } else if (myaddr == IDaddr) {
-	if (isConnected) { 
-	  std::cout << "ID at addr 0x" << std::hex << myaddr << std::dec<<" is connected" << std::endl;
-	  m_IDaddr = myaddr;
-	} else {
-	  std::cout << "ID at addr 0x" << std::hex << DACaddr << std::dec<<" is NOT connected" << std::endl;
-	}
-      } else if (isConnected) 
-	std::cout << "Device 0x" << std::hex << myaddr << std::dec<<" is connected" << std::endl;
-      SetI2CTX(0x0);
-      SetI2CCommand(0x50); // 01010000
-      while(I2CCommandIsDone()) {
-	std::this_thread::sleep_for(std::chrono::seconds(1));
-      }
+		SetI2CTX((myaddr<<1)|0x0);
+		SetI2CCommand(0x90); // 10010000
+		while(I2CCommandIsDone()) { // xxxxxx1x   TODO:: isDone or notDone
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
+		bool isConnected = (((GetI2CStatus()>>7)&0x1) == 0);  // 0xxxxxxx connected
+		if(myaddr == DACaddr) {
+			if (isConnected) { 
+				std::cout << "DAC at addr 0x" << std::hex << myaddr << std::dec<< " is connected" << std::endl;
+				m_DACaddr = myaddr;
+			} else {
+				std::cout << "DAC at addr 0x" << std::hex << DACaddr << std::dec<<" is NOT connected" << std::endl;
+			}
+		} else if (myaddr == IDaddr) {
+			if (isConnected) { 
+				std::cout << "ID at addr 0x" << std::hex << myaddr << std::dec<<" is connected" << std::endl;
+				m_IDaddr = myaddr;
+			} else {
+				std::cout << "ID at addr 0x" << std::hex << DACaddr << std::dec<<" is NOT connected" << std::endl;
+			}
+		} else if (isConnected) {
+			std::cout << "Device 0x" << std::hex << myaddr << std::dec<<" is connected" << std::endl;
+		}
+		SetI2CTX(0x0);
+		SetI2CCommand(0x50); // 01010000
+		while(I2CCommandIsDone()) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
     }
   
     if(m_IDaddr) {
-      m_BoardID = 0;
-      for(unsigned char myaddr = 0xfa; myaddr > 0x0; myaddr++) {
-	char nibble = ReadI2CChar(m_IDaddr, myaddr);
-	m_BoardID = ((((uint64_t)nibble)&0xff)<<((0xff-myaddr)*8))|m_BoardID;
-      }
-      std::cout << "Unique ID : " << std::setw(12) << std::setfill('0') << m_BoardID << std::endl;
+		m_BoardID = 0;
+		for(unsigned char myaddr = 0xfa; myaddr > 0x0; myaddr++) {
+			char nibble = ReadI2CChar(m_IDaddr, myaddr);
+			m_BoardID = ((((uint64_t)nibble)&0xff)<<((0xff-myaddr)*8))|m_BoardID;
+		}
+		std::cout << "Unique ID : " << std::setw(12) << std::setfill('0') << std::hex << m_BoardID << std::endl;
     }
+	std::cout.flags( coutflags ); // Restore cout flags
   }
 
   void miniTLUController::WriteI2CChar(char deviceAddr, char memAddr, char value) {
-    SetI2CTX((deviceAddr<<1)|0x0);
+	SetI2CTX((deviceAddr<<1)|0x0);
     SetI2CCommand(0x90);
     while(I2CCommandIsDone()) {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     SetI2CTX(memAddr);
     SetI2CCommand(0x10);
     while(I2CCommandIsDone()) {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     SetI2CTX(value);
     SetI2CCommand(0x50);
     while(I2CCommandIsDone()) {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
 
@@ -150,24 +176,24 @@ namespace tlu {
     SetI2CTX((deviceAddr<<1)|0x0);
     SetI2CCommand(0x90);
     while(I2CCommandIsDone()) {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     SetI2CTX(memAddr);
     SetI2CCommand(0x10);
     while(I2CCommandIsDone()) {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     for(i = 0; i < len-1; ++i) {
-      SetI2CTX(values[i]);
-      SetI2CCommand(0x10);
-      while(I2CCommandIsDone()) {
-	std::this_thread::sleep_for(std::chrono::seconds(1));
-      }
+		SetI2CTX(values[i]);
+		SetI2CCommand(0x10);
+		while(I2CCommandIsDone()) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
     }
     SetI2CTX(values[len-1]);
     SetI2CCommand(0x50);
     while(I2CCommandIsDone()) {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
 

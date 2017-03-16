@@ -17,7 +17,6 @@ include_directories(${EUDAQ_INCLUDE_DIRS})
 
 option(USER_EUDET_BUILD_NI "build user/eudet ni" ON)
 set(USER_BUILD_NI ${USER_EUDET_BUILD_NI})
-
 find_package(CACTUS)
 cmake_dependent_option(USER_EUDET_BUILD_MINITLU "build user/eudet minitlu" ON
   "CACTUS_FOUND" OFF)

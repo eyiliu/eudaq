@@ -94,7 +94,8 @@ void MinitluProducer::MainLoop(){
 void MinitluProducer::DoConfigure() {
   auto conf = GetConfiguration();
   
-  std::string uhal_conn = "file:///dummy_connections.xml";
+  //std::string uhal_conn = "file:///dummy_connections.xml";
+  std::string uhal_conn = "file://./dummy_TLU_connections.xml";
   std::string uhal_node = "dummy.udp";
   uhal_conn = conf->Get("ConnectionFile", uhal_conn);
   uhal_node = conf->Get("DeviceName",uhal_node);
@@ -113,7 +114,25 @@ void MinitluProducer::DoConfigure() {
   m_tlu->ResetFIFO();
   m_tlu->ResetEventsBuffer();      
   
-  m_tlu->InitializeI2C(conf->Get("I2C_DAC_Addr",0x1f), conf->Get("I2C_ID_Addr",0x50));
+  
+  std::cout << "NOW CHECKING CONFIG PARAMETERS==============================" << std::endl;
+  std::cout << conf->Get("I2C_COREEXP_Addr", 0xff) << std::endl;
+  std::cout << conf->Get("I2C_CLK_Addr", 0xff) << std::endl;
+  std::cout << conf->Get("I2C_DAC1_Addr",0xff) << std::endl;
+  std::cout << conf->Get("I2C_DAC2_Addr",0xff) << std::endl;
+  std::cout << conf->Get("I2C_ID_Addr", 0xff) << std::endl;
+  std::cout << conf->Get("I2C_EXP1_Addr",0xff) << std::endl;
+  std::cout << conf->Get("I2C_EXP2_Addr",0xff) << std::endl;
+  m_tlu->SetI2C_core_addr(conf->Get("I2C_COREEXP_Addr", 0xff));
+  m_tlu->SetI2C_clockChip_addr(conf->Get("I2C_CLK_Addr", 0xff));
+  m_tlu->SetI2C_DAC1_addr(conf->Get("I2C_DAC1_Addr",0xff) );
+  m_tlu->SetI2C_DAC2_addr(conf->Get("I2C_DAC2_Addr",0xff) );
+  m_tlu->SetI2C_EEPROM_addr(conf->Get("I2C_ID_Addr", 0xff) );
+  m_tlu->SetI2C_expander1_addr( conf->Get("I2C_EXP1_Addr",0xff));
+  m_tlu->SetI2C_expander2_addr(conf->Get("I2C_EXP2_Addr",0xff) );
+  
+  //m_tlu->InitializeI2C(conf->Get("I2C_DAC_Addr",0x1f), conf->Get("I2C_ID_Addr",0x50));
+  m_tlu->InitializeI2C();
   m_tlu->SetThresholdValue(0, conf->Get("DACThreshold0",1.3));
   m_tlu->SetThresholdValue(1, conf->Get("DACThreshold1",1.3));
   m_tlu->SetThresholdValue(2, conf->Get("DACThreshold2",1.3));

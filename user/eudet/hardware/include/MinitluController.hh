@@ -118,7 +118,10 @@ namespace tlu {
     void SetUhalLogLevel(uchar_t l);
 	
 	
+<<<<<<< HEAD
 	
+=======
+>>>>>>> develop
 	void SetI2C_core_addr(char addressa) { m_I2C_address.core = addressa; };
 	void SetI2C_clockChip_addr(char addressa) { m_I2C_address.clockChip = addressa; };
 	void SetI2C_DAC1_addr(char addressa) { m_I2C_address.DAC1 = addressa; };
