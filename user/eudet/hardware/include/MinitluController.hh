@@ -73,6 +73,9 @@ namespace tlu {
       SetWRegister("i2c_master.i2c_pre_lo", value&0xff);
       SetWRegister("i2c_master.i2c_pre_hi", (value>>8)&0xff);
     };
+	
+	uint32_t I2C_enable(char EnclustraExpAddr);
+	
     void SetI2CControl(int value) { SetWRegister("i2c_master.i2c_ctrl", value&0xff); };
     void SetI2CCommand(int value) { SetWRegister("i2c_master.i2c_cmdstatus", value&0xff); };
     void SetI2CTX(int value) { SetWRegister("i2c_master.i2c_rxtx", value&0xff); };
@@ -104,7 +107,8 @@ namespace tlu {
     void ResetEventsBuffer();
     void DumpEventsBuffer();
 
-    void InitializeI2C(char DACaddr, char IDaddr);
+    //void InitializeI2C(char DACaddr, char IDaddr);
+	void InitializeI2C();
     void SetDACValue(unsigned char channel, uint32_t value);
     void SetThresholdValue(unsigned char channel, float thresholdVoltage);
 
@@ -112,12 +116,31 @@ namespace tlu {
     uint32_t ReadRRegister(const std::string & name);
 
     void SetUhalLogLevel(uchar_t l);
+	
+	void SetI2C_core_addr(char addressa) { m_I2C_address.core = addressa; };
+	void SetI2C_clockChip_addr(char addressa) { m_I2C_address.clockChip = addressa; };
+	void SetI2C_DAC1_addr(char addressa) { m_I2C_address.DAC1 = addressa; };
+	void SetI2C_DAC2_addr(char addressa) { m_I2C_address.DAC2 = addressa; };
+	void SetI2C_EEPROM_addr(char addressa) { m_I2C_address.EEPROM = addressa; };
+	void SetI2C_expander1_addr(char addressa) { m_I2C_address.expander1 = addressa; };
+	void SetI2C_expander2_addr(char addressa) { m_I2C_address.expander2 = addressa; };
   private:
+  
     char ReadI2CChar(char deviceAddr, char memAddr);
     void WriteI2CChar(char deviceAddr, char memAddr, char value);
     void WriteI2CCharArray(char deviceAddr, char memAddr, unsigned char *values, unsigned int len);
 
-    
+	struct I2C_addresses{
+		char core;
+		char clockChip;
+		char DAC1;
+		char DAC2;
+		char EEPROM;
+		char expander1;
+		char expander2;
+	} m_I2C_address;
+	
+	
     HwInterface * m_hw;
 
     char m_DACaddr;
