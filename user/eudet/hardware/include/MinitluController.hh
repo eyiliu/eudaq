@@ -4,6 +4,7 @@
 #include <deque>
 #include <string>
 #include <iostream>
+#include "i2cBus.hh"
 
 typedef unsigned char uchar_t;
 
@@ -15,7 +16,7 @@ using namespace uhal;
 namespace tlu {
 
   class minitludata;
-  
+
   class miniTLUController {
   public:
     miniTLUController(const std::string & connectionFilename, const std::string & deviceName);
@@ -27,20 +28,18 @@ namespace tlu {
     void SetTriggerVeto(int value) { SetWRegister("triggerLogic.TriggerVetoW",value); };
     void SetPulseStretch(int value) { SetWRegister("triggerLogic.PulseStretchW",value); };
     void SetPulseDelay(int value) { SetWRegister("triggerLogic.PulseDelayW",value); };
-
     void SetDUTMask(int value) { SetWRegister("DUTInterfaces.DUTMaskW",value); };
     void SetDUTMaskMode(int value) { SetWRegister("DUTInterfaces.DUTInterfaceModeW",value); };
     void SetDUTMaskModeModifier(int value) { SetWRegister("DUTInterfaces.DUTInterfaceModeModifierW",value); };
     void SetDUTIgnoreBusy(int value){ SetWRegister("DUTInterfaces.IgnoreDUTBusyW",value); };
     void SetDUTIgnoreShutterVeto(int value){ SetWRegister("DUTInterfaces.IgnoreShutterVetoW",value); };
 
-
     uint32_t GetDUTMask() { return ReadRRegister("DUTInterfaces.DUTMaskR"); };
 
     void SetEventFifoCSR(int value) { SetWRegister("eventBuffer.EventFifoCSR",value); };
     void SetLogicClocksCSR(int value) { SetWRegister("logic_clocks.LogicClocksCSR",value); };
 
-    
+
     void SetEnableRecordData(int value) { SetWRegister("Event_Formatter.Enable_Record_Data",value); };
 
     uint32_t GetLogicClocksCSR() { return ReadRRegister("logic_clocks.LogicClocksCSR"); };
@@ -55,7 +54,8 @@ namespace tlu {
       time = time + ReadRRegister("Event_Formatter.CurrentTimestampLR");
       return time;
     }
-    
+
+    uint32_t GetFW();
     uint32_t GetEventFifoCSR() { return ReadRRegister("eventBuffer.EventFifoCSR"); };
     uint32_t GetEventFifoFillLevel() { return ReadRRegister("eventBuffer.EventFifoFillLevel"); };
     uint32_t GetI2CStatus() { return ReadRRegister("i2c_master.i2c_cmdstatus"); };
@@ -67,15 +67,16 @@ namespace tlu {
       s2 = ReadRRegister("triggerInputs.ThrCount2R");
       s3 = ReadRRegister("triggerInputs.ThrCount3R");
     }
-    
+
 
     void SetI2CClockPrescale(int value) {
       SetWRegister("i2c_master.i2c_pre_lo", value&0xff);
       SetWRegister("i2c_master.i2c_pre_hi", (value>>8)&0xff);
     };
-	
-	uint32_t I2C_enable(char EnclustraExpAddr);
-	
+
+    uint32_t I2C_enable(char EnclustraExpAddr);
+    uint64_t getSN();
+
     void SetI2CControl(int value) { SetWRegister("i2c_master.i2c_ctrl", value&0xff); };
     void SetI2CCommand(int value) { SetWRegister("i2c_master.i2c_cmdstatus", value&0xff); };
     void SetI2CTX(int value) { SetWRegister("i2c_master.i2c_rxtx", value&0xff); };
@@ -88,7 +89,7 @@ namespace tlu {
     uint32_t GetBoardID() { return m_BoardID; }
     void ResetFIFO() { SetEventFifoCSR(0x0); };
 
-    
+
     void ResetCounters() {
       SetSerdesRst(0x2);
       SetSerdesRst(0x0);
@@ -108,7 +109,8 @@ namespace tlu {
     void DumpEventsBuffer();
 
     //void InitializeI2C(char DACaddr, char IDaddr);
-	void InitializeI2C();
+    void InitializeDAC();
+    void InitializeI2C();
     void SetDACValue(unsigned char channel, uint32_t value);
     void SetThresholdValue(unsigned char channel, float thresholdVoltage);
 
@@ -116,8 +118,8 @@ namespace tlu {
     uint32_t ReadRRegister(const std::string & name);
 
     void SetUhalLogLevel(uchar_t l);
-	
-	
+
+
 	void SetI2C_core_addr(char addressa) { m_I2C_address.core = addressa; };
 	void SetI2C_clockChip_addr(char addressa) { m_I2C_address.clockChip = addressa; };
 	void SetI2C_DAC1_addr(char addressa) { m_I2C_address.DAC1 = addressa; };
@@ -126,7 +128,7 @@ namespace tlu {
 	void SetI2C_expander1_addr(char addressa) { m_I2C_address.expander1 = addressa; };
 	void SetI2C_expander2_addr(char addressa) { m_I2C_address.expander2 = addressa; };
   private:
-  
+
     char ReadI2CChar(char deviceAddr, char memAddr);
     void WriteI2CChar(char deviceAddr, char memAddr, char value);
     void WriteI2CCharArray(char deviceAddr, char memAddr, unsigned char *values, unsigned int len);
@@ -140,9 +142,10 @@ namespace tlu {
 		char expander1;
 		char expander2;
 	} m_I2C_address;
-	
-	
-    HwInterface * m_hw;
+
+
+    HwInterface * m_hw; //Instance of IPBus
+    i2cCore *m_i2c; //Instance of I2C
 
     char m_DACaddr;
     char m_IDaddr;
@@ -168,7 +171,7 @@ namespace tlu {
       eventnumber(wh&0xffffffff){
     }
 
-    minitludata(uint32_t w0, uint32_t w1, uint32_t w2, uint32_t w3): // w0 w1 w2 w3  wl= w0 w1; wh= w2 w3 
+    minitludata(uint32_t w0, uint32_t w1, uint32_t w2, uint32_t w3): // w0 w1 w2 w3  wl= w0 w1; wh= w2 w3
       eventtype((w0>>28)&0xf),
       input0((w0>>27)&0x1),
       input1((w0>>26)&0x1),
@@ -197,12 +200,12 @@ namespace tlu {
     uchar_t sc3;
     uint32_t eventnumber;
     uint64_t timestamp1;
-    
+
   };
 
   std::ostream &operator<<(std::ostream &s, minitludata &d);
 
-    
+
 }
 
 #endif

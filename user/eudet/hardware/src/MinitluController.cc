@@ -1,5 +1,6 @@
 #include "MinitluController.hh"
-
+#include "TLUhardware.hh"
+#include "i2cBus.hh"
 #include <iomanip>
 #include <thread>
 #include <chrono>
@@ -10,21 +11,23 @@
 namespace tlu {
   miniTLUController::miniTLUController(const std::string & connectionFilename, const std::string & deviceName) : m_hw(0), m_DACaddr(0), m_IDaddr(0) {
 
+    //m_i2c = new i2cCore(connectionFilename, deviceName);
+
     std::cout << "Configuring from " << connectionFilename << " the device " << deviceName << std::endl;
     if(!m_hw) {
       ConnectionManager manager ( connectionFilename );
       m_hw = new uhal::HwInterface(manager.getDevice( deviceName ));
-
+      m_i2c = new i2cCore(m_hw);
+      GetFW();
     }
   }
-
 
   void miniTLUController::SetWRegister(const std::string & name, int value) {
     try {
     m_hw->getNode(name).write(static_cast< uint32_t >(value));
     m_hw->dispatch();
     } catch (...) {
-       return;
+      return;
     }
   }
 
@@ -52,7 +55,7 @@ namespace tlu {
     // if(0){ // no read
     if(nevent){
       ValVector< uint32_t > fifoContent = m_hw->getNode("eventBuffer.EventFifoData").readBlock(nevent*4);
-      m_hw->dispatch();    
+      m_hw->dispatch();
       if(fifoContent.valid()) {
 	std::cout<< "require events: "<<nevent<<" received events "<<fifoContent.size()/4<<std::endl;
 	if(fifoContent.size()%4 !=0){
@@ -62,10 +65,10 @@ namespace tlu {
 	  m_data.push_back(new minitludata(*i, *(i+1), *(i+2), *(i+3)));
 	  std::cout<< *(m_data.back());
 	}
-      }	
+      }
     }
   }
-  
+
   void miniTLUController::ResetEventsBuffer(){
     for(auto &&i: m_data){
       delete i;
@@ -79,6 +82,8 @@ namespace tlu {
     return e;
   }
 
+///////////////////////////////////
+
 	uint32_t miniTLUController::I2C_enable(char EnclustraExpAddr)
 	// This must be executed at least once after powering up the TLU or the I2C bus will not work.
 	{
@@ -88,68 +93,96 @@ namespace tlu {
 		std::bitset<8> resbit(res);
 		if (resbit.test(7))
 		{
-			std::cout << "\tEnabling Enclustra I2C bus might have failed. This might prevent from talking to the I2C slaves on the TLU." << int(res) << std::endl;
+			std::cout << "\tWarning: enabling Enclustra I2C bus might have failed. This could prevent from talking to the I2C slaves on the TLU." << int(res) << std::endl;
 		}else{
-			std::cout << "\t Success." << std::endl;
+			std::cout << "\tSuccess." << std::endl;
 		}
 	}
-  
-  
-  //void miniTLUController::InitializeI2C(char DACaddr, char IDaddr) {
+
+  uint32_t miniTLUController::GetFW(){
+    uint32_t res;
+    res= ReadRRegister("version");
+    std::cout << "TLU FIRMWARE VERSION= " << std::hex<< res <<std::dec<< std::endl;
+    return res;
+  }
+
+  uint64_t miniTLUController::getSN(){
+    m_IDaddr= m_I2C_address.EEPROM;
+    for(unsigned char myaddr = 0xfa; myaddr > 0x0; myaddr++) {
+      char nibble = ReadI2CChar(m_IDaddr, myaddr);
+      m_BoardID = ((((uint64_t)nibble)&0xff)<<((0xff-myaddr)*8))|m_BoardID;
+    }
+    std::cout << "  TLU Unique ID : " << std::setw(12) << std::setfill('0') << std::hex << m_BoardID << std::endl;
+    return m_BoardID;
+  }
+
+  void miniTLUController::InitializeDAC() {
+    tluHw::testme();
+
+  }
+
   void miniTLUController::InitializeI2C() {
+    std::ios::fmtflags coutflags( std::cout.flags() );// Store cout flags to be able to restore them
+
     SetI2CClockPrescale(0x30);
     SetI2CClockPrescale(0x30);
     SetI2CControl(0x80);
     SetI2CControl(0x80);
-	
-	char DACaddr= m_I2C_address.DAC1;
-	char IDaddr= m_I2C_address.EEPROM;
-	
-	std::ios::fmtflags coutflags( std::cout.flags() );// Store cout flags to be able to restore them
-	//First we need to enable the enclustra I2C expander or we will not see any I2C slave past on the TLU
-	I2C_enable(m_I2C_address.core);
-    
-    std::cout << "Scan I2C bus:" << std::endl;
+
+
+
+    //char DACaddr= m_I2C_address.DAC1;
+    //char IDaddr= m_I2C_address.EEPROM;
+
+    //First we need to enable the enclustra I2C expander or we will not see any I2C slave past on the TLU
+    I2C_enable(m_I2C_address.core);
+
+    std::cout << "  Scan I2C bus:" << std::endl;
     for(int myaddr = 0; myaddr < 128; myaddr++) {
-		SetI2CTX((myaddr<<1)|0x0);
-		SetI2CCommand(0x90); // 10010000
-		while(I2CCommandIsDone()) { // xxxxxx1x   TODO:: isDone or notDone
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-		}
-		bool isConnected = (((GetI2CStatus()>>7)&0x1) == 0);  // 0xxxxxxx connected
-		if(myaddr == DACaddr) {
-			if (isConnected) { 
-				std::cout << "DAC at addr 0x" << std::hex << myaddr << std::dec<< " is connected" << std::endl;
-				m_DACaddr = myaddr;
-			} else {
-				std::cout << "DAC at addr 0x" << std::hex << DACaddr << std::dec<<" is NOT connected" << std::endl;
-			}
-		} else if (myaddr == IDaddr) {
-			if (isConnected) { 
-				std::cout << "ID at addr 0x" << std::hex << myaddr << std::dec<<" is connected" << std::endl;
-				m_IDaddr = myaddr;
-			} else {
-				std::cout << "ID at addr 0x" << std::hex << DACaddr << std::dec<<" is NOT connected" << std::endl;
-			}
-		} else if (isConnected) {
-			std::cout << "Device 0x" << std::hex << myaddr << std::dec<<" is connected" << std::endl;
-		}
-		SetI2CTX(0x0);
-		SetI2CCommand(0x50); // 01010000
-		while(I2CCommandIsDone()) {
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-		}
+      SetI2CTX((myaddr<<1)|0x0);
+      SetI2CCommand(0x90); // 10010000
+	    while(I2CCommandIsDone()) { // xxxxxx1x   TODO:: isDone or notDone
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+	    }
+	    bool isConnected = (((GetI2CStatus()>>7)&0x1) == 0);  // 0xxxxxxx connected
+      if (isConnected){
+        if (myaddr== m_I2C_address.core){
+          //std::cout << "\tFOUND I2C slave CORE" << std::endl;
+        }
+        else if (myaddr== m_I2C_address.clockChip){
+          std::cout << "\tFOUND I2C slave CLOCK" << std::endl;
+        }
+        else if (myaddr== m_I2C_address.DAC1){
+          std::cout << "\tFOUND I2C slave DAC1" << std::endl;
+        }
+        else if (myaddr== m_I2C_address.DAC2){
+          std::cout << "\tFOUND I2C slave DAC2" << std::endl;
+        }
+        else if (myaddr==m_I2C_address.EEPROM){
+          m_IDaddr= myaddr;
+          std::cout << "\tFOUND I2C slave EEPROM" << std::endl;
+        }
+        else if (myaddr==m_I2C_address.expander1){
+          std::cout << "\tFOUND I2C slave EXPANDER1" << std::endl;
+        }
+        else if (myaddr==m_I2C_address.expander2){
+          std::cout << "\tFOUND I2C slave EXPANDER2" << std::endl;
+        }
+        else{
+          std::cout << "\tI2C slave at address 0x" << std::hex << myaddr << " replied but is not on TLU address list. A mistery!" << std::endl;
+        }
+      }
+      SetI2CTX(0x0);
+  		SetI2CCommand(0x50); // 01010000
+  		while(I2CCommandIsDone()) {
+  			std::this_thread::sleep_for(std::chrono::seconds(1));
+  		}
     }
-  
-    if(m_IDaddr) {
-		m_BoardID = 0;
-		for(unsigned char myaddr = 0xfa; myaddr > 0x0; myaddr++) {
-			char nibble = ReadI2CChar(m_IDaddr, myaddr);
-			m_BoardID = ((((uint64_t)nibble)&0xff)<<((0xff-myaddr)*8))|m_BoardID;
-		}
-		std::cout << "Unique ID : " << std::setw(12) << std::setfill('0') << std::hex << m_BoardID << std::endl;
+
+    if(m_IDaddr){
+      getSN();
     }
-	std::cout.flags( coutflags ); // Restore cout flags
+    std::cout.flags( coutflags ); // Restore cout flags
   }
 
   void miniTLUController::WriteI2CChar(char deviceAddr, char memAddr, char value) {
@@ -248,7 +281,7 @@ namespace tlu {
       std::cout<<"Threshold voltage must be > -1.3V and < 1.3V"<<std::endl;
 
     SetDACValue(channel , int(dacCode) );
-      
+
   }
 
   void miniTLUController::DumpEventsBuffer() {
@@ -284,18 +317,18 @@ namespace tlu {
       uhal::setLogLevelTo(uhal::Debug());
       break;
     default:
-      uhal::setLogLevelTo(uhal::Debug());      
+      uhal::setLogLevelTo(uhal::Debug());
     }
   }
 
 
-  
+
   std::ostream &operator<<(std::ostream &s, minitludata &d) {
     s << "eventnumber: " << d.eventnumber << " type: " << int(d.eventtype) <<" timestamp: 0x" <<std::hex<< d.timestamp <<std::dec<<std::endl
       <<" input0: " << int(d.input0) << " input1: " << int(d.input1) << " input2: " << int(d.input2) << " input3: " << int(d.input3) <<std::endl
       <<" sc0: " << int(d.sc0) << " sc1: "  << int(d.sc1) << " sc2: "  << int(d.sc2) << " sc3: " << int(d.sc3) <<std::endl;
     return s;
-  } 
-  
+  }
+
 
 }
