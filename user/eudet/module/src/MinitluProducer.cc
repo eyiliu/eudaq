@@ -129,10 +129,14 @@ void MinitluProducer::DoConfigure() {
   m_tlu->InitializeDAC();
 
   // Set thresholds
-  m_tlu->SetThresholdValue(0, conf->Get("DACThreshold0",1.3));
-  m_tlu->SetThresholdValue(1, conf->Get("DACThreshold1",1.3));
-  m_tlu->SetThresholdValue(2, conf->Get("DACThreshold2",1.3));
-  m_tlu->SetThresholdValue(3, conf->Get("DACThreshold3",1.3));
+  m_tlu->SetThresholdValue(0, conf->Get("DACThreshold0", 1.2));
+  m_tlu->SetThresholdValue(1, conf->Get("DACThreshold1", 1.2));
+  m_tlu->SetThresholdValue(2, conf->Get("DACThreshold2", 1.2));
+  m_tlu->SetThresholdValue(3, conf->Get("DACThreshold3", 1.2));
+  m_tlu->SetThresholdValue(4, conf->Get("DACThreshold0", 1.2));
+  m_tlu->SetThresholdValue(5, conf->Get("DACThreshold1", 10));
+
+
 
   m_tlu->SetDUTMask(conf->Get("DUTMask",1));
   m_tlu->SetDUTMaskMode(conf->Get("DUTMaskMode",0xff));

@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include "i2cBus.hh"
+#include "TLUhardware.hh"
 
 typedef unsigned char uchar_t;
 
@@ -129,9 +130,9 @@ namespace tlu {
 	void SetI2C_expander2_addr(char addressa) { m_I2C_address.expander2 = addressa; };
   private:
 
-    char ReadI2CChar(char deviceAddr, char memAddr);
-    void WriteI2CChar(char deviceAddr, char memAddr, char value);
-    void WriteI2CCharArray(char deviceAddr, char memAddr, unsigned char *values, unsigned int len);
+    //char ReadI2CChar(char deviceAddr, char memAddr);
+    //void WriteI2CChar(char deviceAddr, char memAddr, char value);
+    //void WriteI2CCharArray(char deviceAddr, char memAddr, unsigned char *values, unsigned int len);
 
 	struct I2C_addresses{
 		char core;
@@ -150,6 +151,9 @@ namespace tlu {
     char m_DACaddr;
     char m_IDaddr;
     uint64_t m_BoardID;
+
+    // Instantiate on-board hardware (I2C slaves)
+    AD5665R m_zeDAC1, m_zeDAC2;
 
     std::deque<minitludata*> m_data;
 

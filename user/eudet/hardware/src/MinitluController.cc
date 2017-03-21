@@ -12,13 +12,13 @@ namespace tlu {
   miniTLUController::miniTLUController(const std::string & connectionFilename, const std::string & deviceName) : m_hw(0), m_DACaddr(0), m_IDaddr(0) {
 
     //m_i2c = new i2cCore(connectionFilename, deviceName);
-
     std::cout << "Configuring from " << connectionFilename << " the device " << deviceName << std::endl;
     if(!m_hw) {
       ConnectionManager manager ( connectionFilename );
       m_hw = new uhal::HwInterface(manager.getDevice( deviceName ));
       m_i2c = new i2cCore(m_hw);
       GetFW();
+
     }
   }
 
@@ -88,8 +88,8 @@ namespace tlu {
 	// This must be executed at least once after powering up the TLU or the I2C bus will not work.
 	{
 		std::cout << "  Enabling I2C bus" << std::endl;
-		WriteI2CChar(EnclustraExpAddr, 0x01, 0x7F);
-		char res= ReadI2CChar(EnclustraExpAddr, 0x01);
+		m_i2c->WriteI2CChar(EnclustraExpAddr, 0x01, 0x7F);//here
+		char res= m_i2c->ReadI2CChar(EnclustraExpAddr, 0x01);//here
 		std::bitset<8> resbit(res);
 		if (resbit.test(7))
 		{
@@ -109,7 +109,7 @@ namespace tlu {
   uint64_t miniTLUController::getSN(){
     m_IDaddr= m_I2C_address.EEPROM;
     for(unsigned char myaddr = 0xfa; myaddr > 0x0; myaddr++) {
-      char nibble = ReadI2CChar(m_IDaddr, myaddr);
+      char nibble = m_i2c->ReadI2CChar(m_IDaddr, myaddr);//here
       m_BoardID = ((((uint64_t)nibble)&0xff)<<((0xff-myaddr)*8))|m_BoardID;
     }
     std::cout << "  TLU Unique ID : " << std::setw(12) << std::setfill('0') << std::hex << m_BoardID << std::endl;
@@ -117,7 +117,16 @@ namespace tlu {
   }
 
   void miniTLUController::InitializeDAC() {
-    tluHw::testme();
+    //tluHw::testme();
+    //TEMP here
+    //AD5665R zeDAC1, zeDAC2;
+    m_zeDAC1.SetI2CPar(m_i2c, m_I2C_address.DAC1);
+    m_zeDAC1.SetIntRef(false, true);
+    m_zeDAC2.SetI2CPar(m_i2c, m_I2C_address.DAC2);
+    m_zeDAC2.SetIntRef(false, true);
+
+
+    //TEMP HERE END
 
   }
 
@@ -185,6 +194,7 @@ namespace tlu {
     std::cout.flags( coutflags ); // Restore cout flags
   }
 
+/*
   void miniTLUController::WriteI2CChar(char deviceAddr, char memAddr, char value) {
 	SetI2CTX((deviceAddr<<1)|0x0);
     SetI2CCommand(0x90);
@@ -202,7 +212,8 @@ namespace tlu {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
-
+*/
+/*
   void miniTLUController::WriteI2CCharArray(char deviceAddr, char memAddr, unsigned char *values, unsigned int len) {
     unsigned int i;
 
@@ -229,7 +240,8 @@ namespace tlu {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
-
+*/
+/*
   char miniTLUController::ReadI2CChar(char deviceAddr, char memAddr) {
     SetI2CTX((deviceAddr<<1)|0x0);
     SetI2CCommand(0x90);
@@ -252,8 +264,8 @@ namespace tlu {
     }
     return GetI2CRX();
   }
-
-
+*/
+/*
   void miniTLUController::SetDACValue(unsigned char channel, uint32_t value) {
     unsigned char chrsToSend[2];
 
@@ -262,25 +274,52 @@ namespace tlu {
     chrsToSend[0] = 0x0;
     chrsToSend[1] = 0x0;
     //chrsToSend[1] = 0x1;
-    WriteI2CCharArray(m_DACaddr, 0x38, chrsToSend, 2);
+    m_i2c->WriteI2CCharArray(m_DACaddr, 0x38, chrsToSend, 2);//here
 
     // set the value
     chrsToSend[1] = value&0xff;
     chrsToSend[0] = (value>>8)&0xff;
-    WriteI2CCharArray(m_DACaddr, 0x18+(channel&0x7), chrsToSend, 2);
+    m_i2c->WriteI2CCharArray(m_DACaddr, 0x18+(channel&0x7), chrsToSend, 2);//here
   }
-
+*/
   void miniTLUController::SetThresholdValue(unsigned char channel, float thresholdVoltage ) {
+    //Channel can either be [0, 5] or 7 (all channels).
+    int nChannels= 6; //We should read this from conf file, ideally.
+    bool intRef= false; //We should read this from conf file, ideally.
+    float vref;
+    if (intRef){
+      vref = 2.500; // Internal reference
+    }
+    else{
+      vref = 1.300; // Reference voltage is 1.3V on newer TLU
+    }
+    if ( std::abs(thresholdVoltage) > vref )
+      thresholdVoltage= vref*thresholdVoltage/std::abs(thresholdVoltage);
+      std::cout<<"\tWarning: Threshold voltage is outside range [-1.3 , +1.3] V. Coerced to "<< thresholdVoltage << " V"<<std::endl;
 
-    std::cout << "Setting threshold for channel " << (unsigned int)channel << " to " << thresholdVoltage << " Volts" << std::endl;
-    float vref = 1.300 ; // Reference voltage is 1.3V on newer TLU
+
     float vdac = ( thresholdVoltage + vref ) / 2;
     float dacCode =  0xFFFF * vdac / vref;
 
-    if ( std::abs(thresholdVoltage) > vref )
-      std::cout<<"Threshold voltage must be > -1.3V and < 1.3V"<<std::endl;
+    if( (channel != 7) && ((channel < 0) || (channel > (nChannels-1)))  ){
+      std::cout<<"\tError: DAC illegal DAC channel. Use 7 for all channels or 0 <= channel <= "<< nChannels-1 << std::endl;
+      return;
+    }
 
-    SetDACValue(channel , int(dacCode) );
+    if (channel==7){
+      m_zeDAC1.SetDACValue(channel , int(dacCode) );
+      m_zeDAC2.SetDACValue(channel , int(dacCode) );
+      std::cout << "  Setting threshold for all channels to " << thresholdVoltage << " Volts" << std::endl;
+      return;
+    }
+    if (channel <4){
+      m_zeDAC2.SetDACValue(channel , int(dacCode) );
+      std::cout << "  Setting threshold for channel " << (unsigned int)channel << " to " << thresholdVoltage << " Volts" << std::endl;
+    }
+    else{
+      m_zeDAC1.SetDACValue(channel-4 , int(dacCode) );
+      std::cout << "  Setting threshold for channel " << (unsigned int)channel << " to " << thresholdVoltage << " Volts" << std::endl;
+    }
 
   }
 
