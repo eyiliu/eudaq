@@ -116,17 +116,19 @@ void MinitluProducer::DoConfigure() {
   m_tlu->ResetEventsBuffer();
 
   //Populate address list for I2C elements
-  m_tlu->SetI2C_core_addr(conf->Get("I2C_COREEXP_Addr", 0xff));
-  m_tlu->SetI2C_clockChip_addr(conf->Get("I2C_CLK_Addr", 0xff));
-  m_tlu->SetI2C_DAC1_addr(conf->Get("I2C_DAC1_Addr",0xff) );
-  m_tlu->SetI2C_DAC2_addr(conf->Get("I2C_DAC2_Addr",0xff) );
-  m_tlu->SetI2C_EEPROM_addr(conf->Get("I2C_ID_Addr", 0xff) );
-  m_tlu->SetI2C_expander1_addr( conf->Get("I2C_EXP1_Addr",0xff));
-  m_tlu->SetI2C_expander2_addr(conf->Get("I2C_EXP2_Addr",0xff) );
+  m_tlu->SetI2C_core_addr(conf->Get("I2C_COREEXP_Addr", 0x21));
+  m_tlu->SetI2C_clockChip_addr(conf->Get("I2C_CLK_Addr", 0x68));
+  m_tlu->SetI2C_DAC1_addr(conf->Get("I2C_DAC1_Addr",0x13) );
+  m_tlu->SetI2C_DAC2_addr(conf->Get("I2C_DAC2_Addr",0x1f) );
+  m_tlu->SetI2C_EEPROM_addr(conf->Get("I2C_ID_Addr", 0x50) );
+  m_tlu->SetI2C_expander1_addr( conf->Get("I2C_EXP1_Addr",0x74));
+  m_tlu->SetI2C_expander2_addr(conf->Get("I2C_EXP2_Addr",0x75) );
 
   // Initialize TLU hardware and registers
   m_tlu->InitializeI2C();
   m_tlu->InitializeDAC();
+  m_tlu->InitializeIOexp();
+  m_tlu->InitializeClkChip();
 
   // Set thresholds
   m_tlu->SetThresholdValue(0, conf->Get("DACThreshold0", 1.2));
@@ -134,7 +136,7 @@ void MinitluProducer::DoConfigure() {
   m_tlu->SetThresholdValue(2, conf->Get("DACThreshold2", 1.2));
   m_tlu->SetThresholdValue(3, conf->Get("DACThreshold3", 1.2));
   m_tlu->SetThresholdValue(4, conf->Get("DACThreshold0", 1.2));
-  m_tlu->SetThresholdValue(5, conf->Get("DACThreshold1", 10));
+  m_tlu->SetThresholdValue(5, conf->Get("DACThreshold1", 1.2));
 
 
 

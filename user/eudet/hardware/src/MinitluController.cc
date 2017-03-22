@@ -116,18 +116,46 @@ namespace tlu {
     return m_BoardID;
   }
 
+  void miniTLUController::InitializeClkChip(){
+    std::vector< std::vector< unsigned int> > tmpConf;
+    m_zeClock.SetI2CPar(m_i2c, m_I2C_address.clockChip);
+    m_zeClock.getDeviceVersion();
+    m_zeClock.checkDesignID();
+    std::string filename = "/users/phpgb/workspace/myFirmware/AIDA/bitFiles/TLU_CLK_Config.txt";
+    tmpConf= m_zeClock.parse_clk(filename, false);
+    m_zeClock.writeConfiguration(tmpConf, false);
+  }
+
   void miniTLUController::InitializeDAC() {
-    //tluHw::testme();
-    //TEMP here
-    //AD5665R zeDAC1, zeDAC2;
     m_zeDAC1.SetI2CPar(m_i2c, m_I2C_address.DAC1);
     m_zeDAC1.SetIntRef(false, true);
     m_zeDAC2.SetI2CPar(m_i2c, m_I2C_address.DAC2);
     m_zeDAC2.SetIntRef(false, true);
+    //std::cout << "  I/O expander: initialized" << std::endl;
+  }
 
+  void miniTLUController::InitializeIOexp(){
+    m_IOexpander1.SetI2CPar(m_i2c, m_I2C_address.expander1);
+    m_IOexpander2.SetI2CPar(m_i2c, m_I2C_address.expander2);
 
-    //TEMP HERE END
+    //EPX1 bank 0
+    m_IOexpander1.setInvertReg(0, 0x00, false); //0= normal, 1= inverted
+    m_IOexpander1.setIOReg(0, 0xFF, false); // 0= output, 1= input
+    m_IOexpander1.setOutputs(0, 0xFF, false); // If output, set to 1
+    //EPX1 bank 1
+    m_IOexpander1.setInvertReg(1, 0x00, false); // 0= normal, 1= inverted
+    m_IOexpander1.setIOReg(1, 0xFF, false);// 0= output, 1= input
+    m_IOexpander1.setOutputs(1, 0xFF, false); // If output, set to 1
 
+    //EPX2 bank 0
+    m_IOexpander2.setInvertReg(0, 0x00, false);// 0= normal, 1= inverted
+    m_IOexpander2.setIOReg(0, 0xFF, false);// 0= output, 1= input
+    m_IOexpander2.setOutputs(0, 0xFF, false);// If output, set to 1
+    //EPX2 bank 1
+    m_IOexpander2.setInvertReg(1, 0x00, false);// 0= normal, 1= inverted
+    m_IOexpander2.setIOReg(1, 0x5F, false);// 0= output, 1= input
+    m_IOexpander2.setOutputs(1, 0xFF, false);// If output, set to 1
+    std::cout << "  I/O expanders: initialized" << std::endl;
   }
 
   void miniTLUController::InitializeI2C() {
@@ -293,10 +321,10 @@ namespace tlu {
     else{
       vref = 1.300; // Reference voltage is 1.3V on newer TLU
     }
-    if ( std::abs(thresholdVoltage) > vref )
+    if ( std::abs(thresholdVoltage) > vref ){
       thresholdVoltage= vref*thresholdVoltage/std::abs(thresholdVoltage);
       std::cout<<"\tWarning: Threshold voltage is outside range [-1.3 , +1.3] V. Coerced to "<< thresholdVoltage << " V"<<std::endl;
-
+    }
 
     float vdac = ( thresholdVoltage + vref ) / 2;
     float dacCode =  0xFFFF * vdac / vref;

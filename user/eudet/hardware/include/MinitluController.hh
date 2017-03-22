@@ -110,7 +110,9 @@ namespace tlu {
     void DumpEventsBuffer();
 
     //void InitializeI2C(char DACaddr, char IDaddr);
+    void InitializeClkChip();
     void InitializeDAC();
+    void InitializeIOexp();
     void InitializeI2C();
     void SetDACValue(unsigned char channel, uint32_t value);
     void SetThresholdValue(unsigned char channel, float thresholdVoltage);
@@ -154,6 +156,8 @@ namespace tlu {
 
     // Instantiate on-board hardware (I2C slaves)
     AD5665R m_zeDAC1, m_zeDAC2;
+    PCA9539PW m_IOexpander1, m_IOexpander2;
+    Si5345 m_zeClock;
 
     std::deque<minitludata*> m_data;
 
