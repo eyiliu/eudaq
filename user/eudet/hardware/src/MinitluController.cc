@@ -116,14 +116,15 @@ namespace tlu {
     return m_BoardID;
   }
 
-  void miniTLUController::InitializeClkChip(){
+  void miniTLUController::InitializeClkChip(const std::string & filename){
     std::vector< std::vector< unsigned int> > tmpConf;
     m_zeClock.SetI2CPar(m_i2c, m_I2C_address.clockChip);
     m_zeClock.getDeviceVersion();
-    m_zeClock.checkDesignID();
-    std::string filename = "/users/phpgb/workspace/myFirmware/AIDA/bitFiles/TLU_CLK_Config.txt";
-    tmpConf= m_zeClock.parse_clk(filename, false);
+    //std::string filename = "/users/phpgb/workspace/myFirmware/AIDA/bitFiles/TLU_CLK_Config.txt";
+    tmpConf= m_zeClock.parseClkFile(filename, false);
     m_zeClock.writeConfiguration(tmpConf, false);
+    m_zeClock.checkDesignID();
+
   }
 
   void miniTLUController::InitializeDAC() {
@@ -162,14 +163,9 @@ namespace tlu {
     std::ios::fmtflags coutflags( std::cout.flags() );// Store cout flags to be able to restore them
 
     SetI2CClockPrescale(0x30);
-    SetI2CClockPrescale(0x30);
+    //SetI2CClockPrescale(0x30);
+    //SetI2CControl(0x80);
     SetI2CControl(0x80);
-    SetI2CControl(0x80);
-
-
-
-    //char DACaddr= m_I2C_address.DAC1;
-    //char IDaddr= m_I2C_address.EEPROM;
 
     //First we need to enable the enclustra I2C expander or we will not see any I2C slave past on the TLU
     I2C_enable(m_I2C_address.core);

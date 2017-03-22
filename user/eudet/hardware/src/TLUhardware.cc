@@ -7,6 +7,11 @@
 #include <string>
 #include "uhal/uhal.hpp"
 
+/*
+  This file contains classes for chips used on the new TLU design.
+  Paolo.Baesso@bristol.ac.uk - 2017
+*/
+
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
@@ -287,37 +292,45 @@
     std::cout  << std::endl;
   }
 
-  std::vector< std::vector< unsigned int> > Si5345::parse_clk(const std::string & filename, bool verbose){
+  std::vector< std::vector< unsigned int> > Si5345::parseClkFile(const std::string & filename, bool verbose){
   //Parse the configuration file produced by Clockbuilder Pro (Silicon Labs)
   //Returns a 2-dimensional vector with each row being a couple (ADDRESS, DATA)
+  //It could be improved by using pairs. Not sure if the library can be included.
     std::vector< std::vector< unsigned int> > regSetting;
     if (1){
       std::cout << "  Parsing clock configuration file:" << std::endl;
       std::cout << "\t" << filename << std::endl;
     }
     std::ifstream myfile(filename);
-    std::string onerow;
-    while (std::getline(myfile, onerow)){
-        // Process line by line
-      std::vector< unsigned int > tmpVec;
-      std::string regAddress;
-      std::string regData;
-      if (onerow.at(0) != '#'){//Skip comment lines
-        size_t pos = onerow.find(',');
-        regAddress = onerow.substr(0, pos);
-        regData   = onerow.substr(pos + 1);
-        if ( regAddress != "Address")   {
-          unsigned int new_address = std::stoul(regAddress, nullptr, 16);
-          unsigned int new_data = std::stoul(regData, nullptr, 16);
-          if (verbose){
-            std::cout << "\tAddress " << std::hex << new_address << " --- Data " << new_data <<  std::endl;
+    if (myfile.good()){
+      std::string onerow;
+      while (std::getline(myfile, onerow)){
+          // Process line by line
+        std::vector< unsigned int > tmpVec;
+        std::string regAddress;
+        std::string regData;
+        if (onerow.at(0) != '#'){//Skip comment lines
+          size_t pos = onerow.find(',');
+          regAddress = onerow.substr(0, pos);
+          regData   = onerow.substr(pos + 1);
+          if ( regAddress != "Address"){
+            unsigned int new_address = std::stoul(regAddress, nullptr, 16);
+            unsigned int new_data = std::stoul(regData, nullptr, 16);
+            if (verbose){
+              std::cout << "\tAddress " << std::hex << new_address << " --- Data " << new_data <<  std::endl;
+            }
+            tmpVec.push_back(new_address);
+            tmpVec.push_back(new_data);
+            regSetting.push_back(tmpVec);
           }
-          tmpVec.push_back(new_address);
-          tmpVec.push_back(new_data);
-          regSetting.push_back(tmpVec);
         }
       }
     }
+    else{
+      std::cout << "\tSi5345 - ERROR: Problem with the configuration file. Make sure the file exists and the path is correct." << std::endl;
+      return regSetting;
+    }
+
     std::cout << std::dec;
     return regSetting;
   }
@@ -329,13 +342,17 @@
     std::cout << "  Si5345 Writing configuration (" << regSetting.size() << " registers):" << std::endl;
     //std::cout << regSetting[0].size() << std::endl;
     int nRows= regSetting.size();
+    if (nRows== 0){
+      std::cout << "\tSi5345 - ERROR: empty configuration list. Clock chip not configured." << std::endl;
+      return;
+    }
     std::cout.setf ( std::ios::hex, std::ios::basefield );  // set hex as the basefield
     std::cout.setf ( std::ios::showbase ); // show radix
     for(int iRow=0; iRow < nRows; iRow++){
       if (verbose){
-        std::cout << "ADDR \t" << std::hex << regSetting[iRow][0] << " DATA \t " <<  regSetting[iRow][1] << std::endl;
+        std::cout << "\tADDR \t" << std::hex << regSetting[iRow][0] << " DATA \t " <<  regSetting[iRow][1] << std::endl;
       }
-      m_Clkcore->WriteI2CChar(m_i2cAddr, (unsigned char)regSetting[iRow][0], (unsigned char)regSetting[iRow][1]);
+      writeRegister(regSetting[iRow][0], (unsigned char)regSetting[iRow][1], false);
     }
     std::cout << "\tSuccess" << std::endl;
     std::cout.flags( coutflags ); // Restore cout flags

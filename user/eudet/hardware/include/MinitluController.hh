@@ -110,7 +110,7 @@ namespace tlu {
     void DumpEventsBuffer();
 
     //void InitializeI2C(char DACaddr, char IDaddr);
-    void InitializeClkChip();
+    void InitializeClkChip(const std::string & filename);
     void InitializeDAC();
     void InitializeIOexp();
     void InitializeI2C();

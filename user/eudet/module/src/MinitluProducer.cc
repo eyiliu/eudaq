@@ -128,7 +128,7 @@ void MinitluProducer::DoConfigure() {
   m_tlu->InitializeI2C();
   m_tlu->InitializeDAC();
   m_tlu->InitializeIOexp();
-  m_tlu->InitializeClkChip();
+  m_tlu->InitializeClkChip(conf->Get("CLOCK_CFG_FILE","./confClk.txt")  );
 
   // Set thresholds
   m_tlu->SetThresholdValue(0, conf->Get("DACThreshold0", 1.2));

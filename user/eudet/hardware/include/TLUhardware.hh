@@ -8,7 +8,7 @@
 
 /*
   This file contains classes for chips used on the new TLU design.
-  Paolo.Baesso@bristol.ac.uk
+  Paolo.Baesso@bristol.ac.uk - 2017
 */
 //namespace tluHw{
 //////////////////////////////////////////////////////////////////////
@@ -60,7 +60,7 @@
     char readRegister(unsigned int myaddr, bool verbose);
     void writeRegister(unsigned int myaddr, unsigned char data, bool verbose);
     void checkDesignID();
-    std::vector< std::vector< unsigned int> > parse_clk(const std::string & filename, bool verbose);
+    std::vector< std::vector< unsigned int> > parseClkFile(const std::string & filename, bool verbose);
     void writeConfiguration(std::vector< std::vector< unsigned int> > regSetting, bool verbose);
   };
 
