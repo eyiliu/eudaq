@@ -49,7 +49,7 @@
     }
     m_DACcore->WriteI2CCharArray(m_i2cAddr, 0x38, chrsToSend, 2);
     if (verbose)
-      std::cout << "  DAC reference set to " << stat << std::endl;
+      std::cout << "  DAC (0x"<< std::hex<< (int)m_i2cAddr << std::dec <<") reference set to " << stat << std::endl;
   }
 
   void AD5665R::SetDACValue(unsigned char channel, uint32_t value) {

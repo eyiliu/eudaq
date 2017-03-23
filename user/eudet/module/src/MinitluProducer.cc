@@ -128,7 +128,22 @@ void MinitluProducer::DoConfigure() {
   m_tlu->InitializeI2C();
   m_tlu->InitializeDAC();
   m_tlu->InitializeIOexp();
-  m_tlu->InitializeClkChip(conf->Get("CLOCK_CFG_FILE","./confClk.txt")  );
+  //m_tlu->InitializeClkChip(conf->Get("CLOCK_CFG_FILE","./confClk.txt")  );
+
+  // Enable HDMI connectors
+  m_tlu->enableHDMI(1, conf->Get("HDMI1_on", true), false);
+  m_tlu->enableHDMI(2, conf->Get("HDMI2_on", true), false);
+  m_tlu->enableHDMI(3, conf->Get("HDMI3_on", true), false);
+  m_tlu->enableHDMI(4, conf->Get("HDMI4_on", true), false);
+
+  // Select clock to HDMI
+  m_tlu->SetDutClkSrc(1, conf->Get("HDMI1_clk", 1), false);
+  m_tlu->SetDutClkSrc(2, conf->Get("HDMI2_clk", 1), false);
+  m_tlu->SetDutClkSrc(3, conf->Get("HDMI3_clk", 1), false);
+  m_tlu->SetDutClkSrc(4, conf->Get("HDMI4_clk", 1), false);
+
+  //Set lemo clock
+  m_tlu->enableClkLEMO(conf->Get("LEMOclk", true), false);
 
   // Set thresholds
   m_tlu->SetThresholdValue(0, conf->Get("DACThreshold0", 1.2));
@@ -138,7 +153,26 @@ void MinitluProducer::DoConfigure() {
   m_tlu->SetThresholdValue(4, conf->Get("DACThreshold0", 1.2));
   m_tlu->SetThresholdValue(5, conf->Get("DACThreshold1", 1.2));
 
+  // Set trigger stretch and delay
+  std::vector<unsigned int> stretcVec = {conf->Get("in0_STR",0),
+                                        conf->Get("in1_STR",0),
+                                        conf->Get("in2_STR",0),
+                                        conf->Get("in3_STR",0),
+                                        conf->Get("in4_STR",0),
+                                        conf->Get("in5_STR",0)};
 
+  std::vector<unsigned int> delayVec = {conf->Get("in0_DEL",0),
+                                        conf->Get("in1_DEL",0),
+                                        conf->Get("in2_DEL",0),
+                                        conf->Get("in3_DEL",0),
+                                        conf->Get("in4_DEL",0),
+                                        conf->Get("in5_DEL",0)};
+
+  m_tlu->SetPulseStretchPack(stretcVec);
+  m_tlu->SetPulseDelayPack(delayVec);
+  std::cout <<  "Stretch " << (int)m_tlu->GetPulseStretch() << " delay " << (int)m_tlu->GetPulseDelay()  << std::endl;
+
+  m_tlu->SetTriggerMask(0xABCDBEEFBAE550FF);
 
   m_tlu->SetDUTMask(conf->Get("DUTMask",1));
   m_tlu->SetDUTMaskMode(conf->Get("DUTMaskMode",0xff));
@@ -148,8 +182,10 @@ void MinitluProducer::DoConfigure() {
   m_tlu->SetEnableRecordData(conf->Get("EnableRecordData", 1));
   m_tlu->SetInternalTriggerInterval(conf->Get("InternalTriggerInterval",0)); // 160M/interval
   //m_tlu->SetTriggerMask(conf->Get("TriggerMask",0));
-  m_tlu->SetPulseStretch(conf->Get("PluseStretch ",0));
-  m_tlu->SetPulseDelay(conf->Get("PluseDelay",0));
+  //m_tlu->SetPulseStretch(conf->Get("PulseStretch",0));
+  //m_tlu->SetPulseDelay(conf->Get("PulseDelay",0));
+
+
 }
 
 void MinitluProducer::DoStartRun(){

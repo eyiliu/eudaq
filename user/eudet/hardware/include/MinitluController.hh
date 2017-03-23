@@ -6,6 +6,7 @@
 #include <iostream>
 #include "i2cBus.hh"
 #include "TLUhardware.hh"
+#include <vector>
 
 typedef unsigned char uchar_t;
 
@@ -23,12 +24,17 @@ namespace tlu {
     miniTLUController(const std::string & connectionFilename, const std::string & deviceName);
     ~miniTLUController(){ResetEventsBuffer();};
 
+    void enableHDMI(unsigned int dutN, bool enable, bool verbose);
+    unsigned int PackBits(std::vector< unsigned int>  rawValues);
     void SetSerdesRst(int value) { SetWRegister("triggerInputs.SerdesRstW",value); };
     void SetInternalTriggerInterval(int value) { SetWRegister("triggerLogic.InternalTriggerIntervalW",value); };
-    void SetTriggerMask(int value) { SetWRegister("triggerLogic.TriggerMaskW",value); };
+    //void SetTriggerMask(int value) { SetWRegister("triggerLogic.TriggerMaskW",value); };
+    void SetTriggerMask(uint64_t value);
     void SetTriggerVeto(int value) { SetWRegister("triggerLogic.TriggerVetoW",value); };
     void SetPulseStretch(int value) { SetWRegister("triggerLogic.PulseStretchW",value); };
     void SetPulseDelay(int value) { SetWRegister("triggerLogic.PulseDelayW",value); };
+    void SetPulseStretchPack(std::vector< unsigned int>  valuesVec);
+    void SetPulseDelayPack(std::vector< unsigned int>  valuesVec);
     void SetDUTMask(int value) { SetWRegister("DUTInterfaces.DUTMaskW",value); };
     void SetDUTMaskMode(int value) { SetWRegister("DUTInterfaces.DUTInterfaceModeW",value); };
     void SetDUTMaskModeModifier(int value) { SetWRegister("DUTInterfaces.DUTInterfaceModeModifierW",value); };
@@ -45,7 +51,10 @@ namespace tlu {
 
     uint32_t GetLogicClocksCSR() { return ReadRRegister("logic_clocks.LogicClocksCSR"); };
     uint32_t GetInternalTriggerInterval() { return ReadRRegister("triggerLogic.InternalTriggerIntervalR"); };
-    uint32_t GetTriggerMask() { return ReadRRegister("triggerLogic.TriggerMaskR"); };
+    uint32_t GetPulseStretch(){ return ReadRRegister("triggerLogic.PulseStretchR"); };
+    uint32_t GetPulseDelay() { return ReadRRegister("triggerLogic.PulseDelayR"); };
+    //uint32_t GetTriggerMask() { return ReadRRegister("triggerLogic.TriggerMaskR"); };
+    uint64_t GetTriggerMask();
     uint32_t GetTriggerVeto() { return ReadRRegister("triggerLogic.TriggerVetoR"); };
     uint32_t GetPreVetoTriggers() { return ReadRRegister("triggerLogic.PreVetoTriggersR"); };
     uint32_t GetPostVetoTriggers() { return ReadRRegister("triggerLogic.PostVetoTriggersR"); };
@@ -109,6 +118,7 @@ namespace tlu {
     void ResetEventsBuffer();
     void DumpEventsBuffer();
 
+    void enableClkLEMO(bool enable, bool verbose);
     //void InitializeI2C(char DACaddr, char IDaddr);
     void InitializeClkChip(const std::string & filename);
     void InitializeDAC();
@@ -116,6 +126,7 @@ namespace tlu {
     void InitializeI2C();
     void SetDACValue(unsigned char channel, uint32_t value);
     void SetThresholdValue(unsigned char channel, float thresholdVoltage);
+    void SetDutClkSrc(unsigned int hdmiN, unsigned int source, bool verbose);
 
     void SetWRegister(const std::string & name, int value);
     uint32_t ReadRRegister(const std::string & name);
