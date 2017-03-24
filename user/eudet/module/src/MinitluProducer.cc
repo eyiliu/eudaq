@@ -128,7 +128,7 @@ void MinitluProducer::DoConfigure() {
   m_tlu->InitializeI2C();
   m_tlu->InitializeDAC();
   m_tlu->InitializeIOexp();
-  //m_tlu->InitializeClkChip(conf->Get("CLOCK_CFG_FILE","./confClk.txt")  );
+  m_tlu->InitializeClkChip(conf->Get("CLOCK_CFG_FILE","./confClk.txt")  );
 
   // Enable HDMI connectors
   m_tlu->enableHDMI(1, conf->Get("HDMI1_on", true), false);
@@ -175,10 +175,10 @@ void MinitluProducer::DoConfigure() {
   // The conf function does not seem happy with a 32-bit default. Need to check.
   m_tlu->SetTriggerMask( (uint32_t)(conf->Get("trigMaskHi", 0xFFFF)),  (uint32_t)(conf->Get("trigMaskLo", 0xFFFE)) );
 
-  m_tlu->SetDUTMask(conf->Get("DUTMask",1));
-  m_tlu->SetDUTMaskMode(conf->Get("DUTMaskMode",0xff));
-  m_tlu->SetDUTMaskModeModifier(conf->Get("DUTMaskModeModifier",0xff));
-  m_tlu->SetDUTIgnoreBusy(conf->Get("DUTIgnoreBusy",7));
+  m_tlu->SetDUTMask(conf->Get("DUTMask",1)); // Which DUTs are on
+  m_tlu->SetDUTMaskMode(conf->Get("DUTMaskMode",0xff)); // AIDA (x1) or EUDET (x0)
+  m_tlu->SetDUTMaskModeModifier(conf->Get("DUTMaskModeModifier",0xff)); // Only for EUDET
+  m_tlu->SetDUTIgnoreBusy(conf->Get("DUTIgnoreBusy",0xF)); //
   m_tlu->SetDUTIgnoreShutterVeto(conf->Get("DUTIgnoreShutterVeto",1));//ILC stuff related
   m_tlu->SetEnableRecordData(conf->Get("EnableRecordData", 1));
   m_tlu->SetInternalTriggerInterval(conf->Get("InternalTriggerInterval",0)); // 160M/interval
