@@ -72,11 +72,13 @@ namespace tlu {
     uint32_t GetI2CStatus() { return ReadRRegister("i2c_master.i2c_cmdstatus"); };
     uint32_t GetI2CRX() { return ReadRRegister("i2c_master.i2c_rxtx"); };
     uint32_t GetFirmwareVersion() { return ReadRRegister("version"); };
-    void GetScaler(uint32_t &s0,uint32_t &s1,uint32_t &s2,uint32_t &s3 ){
+    void GetScaler(uint32_t &s0, uint32_t &s1, uint32_t &s2, uint32_t &s3, uint32_t &s4, uint32_t &s5 ){
       s0 = ReadRRegister("triggerInputs.ThrCount0R");
       s1 = ReadRRegister("triggerInputs.ThrCount1R");
       s2 = ReadRRegister("triggerInputs.ThrCount2R");
       s3 = ReadRRegister("triggerInputs.ThrCount3R");
+      s4 = ReadRRegister("triggerInputs.ThrCount4R");
+      s5 = ReadRRegister("triggerInputs.ThrCount5R");
     }
 
 

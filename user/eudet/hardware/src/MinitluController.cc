@@ -108,7 +108,7 @@ namespace tlu {
     uint32_t fifomax= 8192;
 
     res= ReadRRegister("eventBuffer.EventFifoFillLevel");
-    std::cout << std::fixed << std::setw( 3 ) << std::setprecision( 2 ) << std::setfill( '0' ) << "  FIFO level " << (float)res/fifomax << "% (" << res << "/" << fifomax << ")" << std::endl;
+    //std::cout << std::fixed << std::setw( 3 ) << std::setprecision( 2 ) << std::setfill( '0' ) << "  FIFO level " << (float)res/fifomax << "% (" << res << "/" << fifomax << ")" << std::endl;
     return res;
   };
 

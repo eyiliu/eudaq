@@ -65,8 +65,8 @@ void MinitluProducer::MainLoop(){
       triggerss<< data->input3 << data->input2 << data->input1 << data->input0;
       ev->SetTag("trigger", triggerss.str());
       if(m_tlu->IsBufferEmpty()){
-	uint32_t sl0,sl1,sl2,sl3, pt;
-	m_tlu->GetScaler(sl0,sl1,sl2,sl3);
+	uint32_t sl0,sl1,sl2,sl3, sl4, sl5, pt;
+	m_tlu->GetScaler(sl0,sl1,sl2,sl3,sl4,sl5);
 	pt=m_tlu->GetPreVetoTriggers();
 	ev->SetTag("SCALER0", std::to_string(sl0));
 	ev->SetTag("SCALER1", std::to_string(sl1));
@@ -172,8 +172,7 @@ void MinitluProducer::DoConfigure() {
   //std::cout <<  "Stretch " << (int)m_tlu->GetPulseStretch() << " delay " << (int)m_tlu->GetPulseDelay()  << std::endl;
 
   // Set triggerMask
-  //m_tlu->SetTriggerMask(0xFFBAE550DEED0FFF);
-  //m_tlu->SetTriggerMask( 0xFFDEED0F,  0xFFBAE550 );
+  // The conf function does not seem happy with a 32-bit default. Need to check.
   m_tlu->SetTriggerMask( (uint32_t)(conf->Get("trigMaskHi", 0xFFFF)),  (uint32_t)(conf->Get("trigMaskLo", 0xFFFE)) );
 
   m_tlu->SetDUTMask(conf->Get("DUTMask",1));
@@ -220,14 +219,16 @@ void MinitluProducer::OnStatus() {
     SetStatusTag("TIMESTAMP", std::to_string(time));
     SetStatusTag("LASTTIME", std::to_string(m_lasttime));
 
-    uint32_t sl0,sl1,sl2,sl3, pret, post;
+    uint32_t sl0,sl1,sl2,sl3,sl4,sl5, pret, post;
     pret=m_tlu->GetPreVetoTriggers();
     post=m_tlu->GetPostVetoTriggers();
-    m_tlu->GetScaler(sl0,sl1,sl2,sl3);
+    m_tlu->GetScaler(sl0,sl1,sl2,sl3,sl4,sl5);
     SetStatusTag("SCALER0", std::to_string(sl0));
     SetStatusTag("SCALER1", std::to_string(sl1));
     SetStatusTag("SCALER2", std::to_string(sl2));
     SetStatusTag("SCALER3", std::to_string(sl3));
+    SetStatusTag("SCALER4", std::to_string(sl4));
+    SetStatusTag("SCALER5", std::to_string(sl5));
     SetStatusTag("PARTICLES", std::to_string(pret));
     SetStatusTag("TRIG", std::to_string(post));
   }
