@@ -178,7 +178,7 @@ void MinitluProducer::DoConfigure() {
   m_tlu->SetDUTMask(conf->Get("DUTMask",1)); // Which DUTs are on
   m_tlu->SetDUTMaskMode(conf->Get("DUTMaskMode",0xff)); // AIDA (x1) or EUDET (x0)
   m_tlu->SetDUTMaskModeModifier(conf->Get("DUTMaskModeModifier",0xff)); // Only for EUDET
-  m_tlu->SetDUTIgnoreBusy(conf->Get("DUTIgnoreBusy",0xF)); //
+  m_tlu->SetDUTIgnoreBusy(conf->Get("DUTIgnoreBusy",0xF)); // Ignore busy in AIDA mode
   m_tlu->SetDUTIgnoreShutterVeto(conf->Get("DUTIgnoreShutterVeto",1));//ILC stuff related
   m_tlu->SetEnableRecordData(conf->Get("EnableRecordData", 1));
   m_tlu->SetInternalTriggerInterval(conf->Get("InternalTriggerInterval",0)); // 160M/interval

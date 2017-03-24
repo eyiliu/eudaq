@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <iomanip>
 #include "uhal/uhal.hpp"
 
 /*
@@ -352,6 +353,7 @@
       if (verbose){
         std::cout << "\tADDR \t" << std::hex << regSetting[iRow][0] << " DATA \t " <<  regSetting[iRow][1] << std::endl;
       }
+      std::cout << std::dec<< "\r\t" << std::setw(3) << std::setfill('0') << iRow+1  << "/"<< regSetting.size() << std::flush;
       writeRegister(regSetting[iRow][0], (unsigned char)regSetting[iRow][1], false);
     }
     std::cout << "\tSuccess" << std::endl;
