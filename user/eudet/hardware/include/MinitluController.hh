@@ -30,6 +30,7 @@ namespace tlu {
     void SetInternalTriggerInterval(int value) { SetWRegister("triggerLogic.InternalTriggerIntervalW",value); };
     //void SetTriggerMask(int value) { SetWRegister("triggerLogic.TriggerMaskW",value); };
     void SetTriggerMask(uint64_t value);
+    void SetTriggerMask(uint32_t maskHi, uint32_t maskLo);
     void SetTriggerVeto(int value) { SetWRegister("triggerLogic.TriggerVetoW",value); };
     void SetPulseStretch(int value) { SetWRegister("triggerLogic.PulseStretchW",value); };
     void SetPulseDelay(int value) { SetWRegister("triggerLogic.PulseDelayW",value); };
@@ -66,8 +67,8 @@ namespace tlu {
     }
 
     uint32_t GetFW();
-    uint32_t GetEventFifoCSR() { return ReadRRegister("eventBuffer.EventFifoCSR"); };
-    uint32_t GetEventFifoFillLevel() { return ReadRRegister("eventBuffer.EventFifoFillLevel"); };
+    uint32_t GetEventFifoCSR();
+    uint32_t GetEventFifoFillLevel();
     uint32_t GetI2CStatus() { return ReadRRegister("i2c_master.i2c_cmdstatus"); };
     uint32_t GetI2CRX() { return ReadRRegister("i2c_master.i2c_rxtx"); };
     uint32_t GetFirmwareVersion() { return ReadRRegister("version"); };

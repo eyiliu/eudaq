@@ -6,6 +6,7 @@
 #include <chrono>
 #include <string>
 #include <bitset>
+#include <iomanip>
 
 
 #include "uhal/uhal.hpp"
@@ -83,6 +84,33 @@ namespace tlu {
       std::cout << "enableHDMI: connector out of range [1, " << nDUTs << "]" << std::endl;
     }
   }
+
+  uint32_t miniTLUController::GetEventFifoCSR() {
+    uint32_t res;
+    bool empty, alm_empty, alm_full, full, prog_full;
+    res= ReadRRegister("eventBuffer.EventFifoCSR");
+    empty = 0x1 & res;
+    alm_empty= 0x2 & res;
+    alm_full= 0x4 & res;
+    full= 0x8 & res;
+    prog_full= 0x4 & res;
+    std::cout << "  FIFO status:" << std::endl;
+    if (empty){std::cout << "\tEMPTY" << std::endl;}
+    if (alm_empty){std::cout << "\tALMOST EMPTY (1 word in FIFO)" << std::endl;}
+    if (alm_full){std::cout << "\tALMOST FULL (1 word left)" << std::endl;}
+    if (full){std::cout << "\tFULL (8192 word)" << std::endl;}
+    if (prog_full){std::cout << "\tABOVE THRESHOLD (8181/8192)" << std::endl;}
+    return res;
+  }
+
+  uint32_t miniTLUController::GetEventFifoFillLevel() {
+    uint32_t res;
+    uint32_t fifomax= 8192;
+
+    res= ReadRRegister("eventBuffer.EventFifoFillLevel");
+    std::cout << std::fixed << std::setw( 3 ) << std::setprecision( 2 ) << std::setfill( '0' ) << "  FIFO level " << (float)res/fifomax << "% (" << res << "/" << fifomax << ")" << std::endl;
+    return res;
+  };
 
   uint32_t miniTLUController::GetFW(){
     uint32_t res;
@@ -394,10 +422,14 @@ namespace tlu {
 
   void miniTLUController::SetTriggerMask(uint64_t value){
     uint32_t maskHi, maskLo;
-    //maskHi = (uint32_t)((value & 0xFFFFFFFFLL)>>32);
-    //maskLo = (uint32_t)(value & 0x00000000FFFFFFFFLL);
     maskHi = (uint32_t)(value>>32);
     maskLo = (uint32_t)value;
+    std::cout << std::hex << "  TRIGGER PATTERN (for external triggers) SET TO 0x" << maskHi << " --- 0x"<< maskLo << " (Two 32-bit words)" << std::dec << std::endl;
+    SetWRegister("triggerLogic.TriggerPattern_lowW",  maskLo);
+    SetWRegister("triggerLogic.TriggerPattern_highW", maskHi);
+  }
+
+  void miniTLUController::SetTriggerMask(uint32_t maskHi, uint32_t maskLo){
     std::cout << std::hex << "  TRIGGER PATTERN (for external triggers) SET TO 0x" << maskHi << " --- 0x"<< maskLo << " (Two 32-bit words)" << std::dec << std::endl;
     SetWRegister("triggerLogic.TriggerPattern_lowW",  maskLo);
     SetWRegister("triggerLogic.TriggerPattern_highW", maskHi);
