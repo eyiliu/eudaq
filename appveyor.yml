@@ -2,7 +2,7 @@ version: 2.0.0.{build}
 
 pull_requests:
   do_not_increment_build_number: true
-  
+
 branches:
   only:
   - master
@@ -13,12 +13,12 @@ os: Visual Studio 2015
 configuration: Release
 
 #  - x64
-platform: x86 
+platform: x86
 
 # comments on options:
 # BIFAHCAL: Requires cactus and does not compile properly on Windows
 # cmspixel: Required pxar compiles on Windows but there are some minor problems afterwards
-# 
+#
 environment:
   matrix:
     - build_type: full
@@ -52,7 +52,7 @@ environment:
       BUILD_tlu: OFF
       IGNORE_KNOWN_ISSUES: ON
       PYTHON: "C:\\Python35"
-      PYTHON_VERSION: "3.5.2" 
+      PYTHON_VERSION: "3.5.2"
       PYTHON_ARCH: "32"
     - build_type: minimum
       ROOTSYS: C:\root
@@ -85,8 +85,8 @@ environment:
       BUILD_tlu: OFF
       IGNORE_KNOWN_ISSUES: OFF
       PYTHON: "C:\\Python35"
-      PYTHON_VERSION: "3.5.2" 
-      PYTHON_ARCH: "32"      
+      PYTHON_VERSION: "3.5.2"
+      PYTHON_ARCH: "32"
     - build_type: library_only
       ROOTSYS: C:\root
       PATH: '%ROOTSYS%\bin;C:\Qt\5.6\msvc2015;C:\Python35;C:\Miniconda35;C:\Miniconda35\\Scripts;%PATH%'
@@ -118,16 +118,16 @@ environment:
       BUILD_tlu: OFF
       IGNORE_KNOWN_ISSUES: OFF
       PYTHON: "C:\\Python35"
-      PYTHON_VERSION: "3.5.2" 
-      PYTHON_ARCH: "32"        
+      PYTHON_VERSION: "3.5.2"
+      PYTHON_ARCH: "32"
 
 cache:
   - '%APPVEYOR_BUILD_FOLDER%\extern\ZestSC1'
   - '%APPVEYOR_BUILD_FOLDER%\extern\tlufirmware'
   - '%APPVEYOR_BUILD_FOLDER%\extern\libusb-win32'
   - '%APPVEYOR_BUILD_FOLDER%\extern\alice-its-alpide-software-master-3189f00d7515733d46a61a5ab2606e436df4955b'
-  - '%APPVEYOR_BUILD_FOLDER%\extern\tinyxml'  
-  
+  - '%APPVEYOR_BUILD_FOLDER%\extern\tinyxml'
+
 init:
 # The following line enables the remote desktop connection and show the connection information.
 - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -138,8 +138,8 @@ install:
 - cmd: del "C:\Program Files (x86)\MSBuild\14.0\Microsoft.Common.targets\ImportAfter\Xamarin.Common.targets"
 
 # Install Python (from the official .msi of http://python.org) and pip when not already installed.
-# This was copied from 
-- ps: if (-not(Test-Path($env:PYTHON))) { & appveyor\install_python.ps1 }    
+# This was copied from
+- ps: if (-not(Test-Path($env:PYTHON))) { & appveyor\install_python.ps1 }
 # Prepend newly installed Python to the PATH of this build (this cannot be
 # done from inside the powershell script as it would require to restart
 # the parent CMD process).
@@ -154,10 +154,10 @@ install:
 # compiled extensions and are not provided as pre-built wheel packages,
 # pip will build them from source using the MSVC compiler matching the
 # target Python version and architecture
-- "%CMD_IN_ENV% pip install -r appveyor\\dev-requirements.txt"    
-    
-before_build:    
-- ps: Write-Host "Downloading root from root.cern.ch"; appveyor\download.ps1 -downloadLocation 'https://root.cern.ch/download/root_v5.34.36.win32.vc12.zip' -storageLocation 'C:\\root_v5.34.36.win32.vc12.zip'; 7z -y x C:\\root_v5.34.36.win32.vc12.zip -oC:\; 
+- "%CMD_IN_ENV% pip install -r appveyor\\dev-requirements.txt"
+
+before_build:
+- ps: Write-Host "Downloading root from root.cern.ch"; appveyor\download.ps1 -downloadLocation 'https://root.cern.ch/download/root_v5.34.36.win32.vc12.zip' -storageLocation 'C:\\root_v5.34.36.win32.vc12.zip'; 7z -y x C:\\root_v5.34.36.win32.vc12.zip -oC:\;
 
 - ps: appveyor\install_afs.ps1;
 
@@ -180,7 +180,7 @@ build_script:
 - ps: If (${env:BUILD_palpidefs} -eq "ON") { [Environment]::SetEnvironmentVariable("PALPIDEFS_SPECIAL_PARAMETERS", "-DCMAKE_PALPIDEFS_DRIVER_INCLUDE:FILEPATH=%APPVEYOR_BUILD_FOLDER%\extern\alice-its-alpide-software-master-3189f00d7515733d46a61a5ab2606e436df4955b\pALPIDEfs-software -DUSE_TINYXML=on -DUSE_ROOT=on", "Process"); } Else { [Environment]::SetEnvironmentVariable("PALPIDEFS_SPECIAL_PARAMETERS", "", "Process"); }
 
 # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-
+- echo %APPVEYOR_BUILD_FOLDER%\build
 - cd %APPVEYOR_BUILD_FOLDER%\build
 
 - cmd: echo -DIGNORE_KNOWN_ISSUES=%IGNORE_KNOWN_ISSUES% -DBUILD_AHCAL=%BUILD_AHCAL% -DBUILD_BIFAHCAL=%BUILD_BIFAHCAL% -DBUILD_TESTING=%BUILD_TESTING% -DBUILD_WITH_QT4=%BUILD_WITH_QT4% -DBUILD_allproducer=%BUILD_allproducer% -DBUILD_altro=%BUILD_altro% -DBUILD_altroUSB=%BUILD_altroUSB% -DBUILD_cmspixel=%BUILD_cmspixel% -DBUILD_depfet=%BUILD_depfet% -DBUILD_fortis=%BUILD_fortis% -DBUILD_gui=%BUILD_gui% -DBUILD_main=%BUILD_main% -DBUILD_manual=%BUILD_manual% -DBUILD_mimoroma=%BUILD_mimoroma% -DBUILD_miniTLU=%BUILD_miniTLU% -DBUILD_ni=%BUILD_ni% -DBUILD_nreader=%BUILD_nreader% -DBUILD_offlinemon=%BUILD_offlinemon% -DBUILD_onlinemon=%BUILD_onlinemon% -DBUILD_palpidefs=%BUILD_palpidefs% -DBUILD_pixelmanproducer=%BUILD_pixelmanproducer% -DBUILD_python=%BUILD_python% -DBUILD_root=%BUILD_root% -DBUILD_taki=%BUILD_taki% -DBUILD_timepixdummy=%BUILD_timepixdummy% -DBUILD_tlu=%BUILD_tlu% ..
@@ -204,6 +204,6 @@ deploy:
   on:
     appveyor_repo_tag: true
     build_type: minimum
-    
+
 on_finish:
 #- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
