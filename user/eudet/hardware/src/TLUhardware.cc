@@ -357,7 +357,7 @@
       writeRegister(regSetting[iRow][0], (unsigned char)regSetting[iRow][1], false);
     }
     std::cout << "\tSuccess" << std::endl;
-    std::cout.flags( coutflags ); // Restore cout flags
+    std::cout.flags( coutflags ); // Restore cout flag
   }
 
 
