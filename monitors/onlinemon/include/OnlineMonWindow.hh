@@ -110,6 +110,7 @@ public:
   void autoUpdate();
   virtual ~OnlineMonWindow();
   void setCollections(std::vector<BaseCollection *> colls) { _colls = colls; }
+  // using TObject::Write; // Could avoid warnings, but introduces ambiguity...
   void Write();
   void Reset();
   void AutoReset();
@@ -117,6 +118,7 @@ public:
   void Quit();
   void SnapShot();
   void About();
+  using TGFrame::Print;
   void Print();
   void setRootFileName(std::string rootfilename) {
     _rootfilename = rootfilename;
@@ -133,6 +135,7 @@ public:
   unsigned int getReduce() { return _reduce; }
   void setUpdate(const unsigned int up);
   void increaseAnalysedEventsCounter() { ++_analysedEvents; }
+  using TObject::ExecuteEvent;
   void ExecuteEvent(Int_t event, Int_t px, Int_t py, TObject *sel);
 
   void SetOnlineMon(RootMonitor *mymon);
