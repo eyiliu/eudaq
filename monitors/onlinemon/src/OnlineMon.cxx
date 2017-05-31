@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <chrono>
+#include <sstream>
 #include <thread>
 #include <memory>
 
@@ -132,15 +133,62 @@ void RootMonitor::setReduce(const unsigned int red) {
   }
 }
 
+int skipEventCount = 0;
+std::chrono::steady_clock::duration latestDuration;
+
+class EventTimer {
+  std::chrono::steady_clock::time_point start;
+public:
+  EventTimer() : start(std::chrono::steady_clock::now()) {}
+  ~EventTimer() {
+    auto taken = std::chrono::steady_clock::now() - start;
+    if(taken < std::chrono::microseconds(100)) {
+      // Don't record time taken if we skipped it!
+      return;
+    }
+
+    latestDuration = taken;
+  }
+};
+
 void RootMonitor::DoReceive(eudaq::EventUP evup) {
+  EventTimer et;
   eudaq::EventSP evsp = std::move(evup);
   auto stdev = std::dynamic_pointer_cast<eudaq::StandardEvent>(evsp);
   if(!stdev){
+    // Every event is too slow?
+    //  Want a way to measure time taken for each event and keep 
+    //  to about 1kHz throughput...
+    if(latestDuration > std::chrono::milliseconds(100)) {
+      // Can only do 10 events in a second!
+      if((evsp->GetEventNumber() % 1000) != 0) {
+	skipEventCount ++;
+	SetStatusTag("Skipped", std::to_string(skipEventCount));
+	return;
+      }
+    } else if(latestDuration > std::chrono::milliseconds(10)) {
+      // Can only do 100 events in a second!
+      if((evsp->GetEventNumber() % 100) != 0) {
+	skipEventCount ++;
+	SetStatusTag("Skipped", std::to_string(skipEventCount));
+	return;
+      }
+    } else if(latestDuration > std::chrono::milliseconds(1)) {
+      // Can only do 1000 events in a second!
+      if((evsp->GetEventNumber() % 10) != 0) {
+	skipEventCount ++;
+	SetStatusTag("Skipped", std::to_string(skipEventCount));
+	return;
+      }
+    }
+
     stdev = eudaq::StandardEvent::MakeShared();
     eudaq::StdEventConverter::Convert(evsp, stdev, nullptr); //no conf
   }
-  
-  auto &ev = *(stdev.get());
+  // Before and after?
+  // evsp->Print(std::cout);
+  stdev->Print(std::cout);
+  auto &ev = *stdev;
   while(_offline <= 0 && onlinemon==NULL){
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
@@ -191,22 +239,43 @@ void RootMonitor::DoReceive(eudaq::EventUP evup) {
     unsigned int num = (unsigned int) ev.NumPlanes();
     // Initialize the geometry with the first event received:
     if(!_planesInitialized) {
-      myevent.setNPlanes(num);
+      std::vector<std::string> ids;
+      for(unsigned int i=0; i<num; i++) {
+	std::stringstream ss;
+	ss << ev.GetPlane(i).ID();
+	ids.push_back(ss.str());
+      }
+      myevent.setNPlanes(num, ids);
       std::cout << "Initialized geometry: " << num << " planes." << std::endl;
     }
     else {
       if (myevent.getNPlanes()!=num) {
 
         cout << "Plane Mismatch on " <<ev.GetEventNumber()<<endl;
-        cout << "Current/Previous " <<num<<"/"<<myevent.getNPlanes()<<endl;
-        skip_dodgy_event=true; //we may want to skip this FIXME
+        cout << "Current/First " <<num<<"/"<<myevent.getNPlanes()<<endl;
+
+	for(unsigned int i=0; i<num; i++) {
+	  cout << " " << ev.GetPlane(i).ID() << '\n';
+	}
+	myevent.reportIds();
+
+        // Each block is expected to create one plane for display...
+        // skip_dodgy_event=true; //we may want to skip this FIXME
         ostringstream eudaq_warn_message;
         eudaq_warn_message << "Plane Mismatch in Event "<<ev.GetEventNumber() <<" "<<num<<"/"<<myevent.getNPlanes();
         EUDAQ_LOG(WARN,(eudaq_warn_message.str()).c_str());
 
+	if(num < myevent.getNPlanes()) {
+	  // Fewer planes than the first event, so plotting will 
+	  // look for histograms that aren't there!!!
+	  std::cout << "Skipping, too few planes\n";
+	  return;
+	}
+
+	exit(1);
       }
       else {
-        myevent.setNPlanes(num);
+	//        myevent.setNPlanes(num);
       }
     }
 
@@ -238,12 +307,13 @@ void RootMonitor::DoReceive(eudaq::EventUP evup) {
       simpEv.setSlow_para(tagname,val);
     }
 
-    // std::vector<std::string> paralist = ev.GetTagList("PLOT_");
-    // for(auto &e: paralist){
-    //   double val ;
-    //   val=ev.GetTag(e, val);
-    //   simpEv.setSlow_para(e,val);
-    // }
+    // map<str,str>
+    for(auto &e: ev.GetTags()) {
+      if(e.first.substr(0, 5) == "PLOT_") {
+	double val = std::stod(e.second);
+	simpEv.setSlow_para(e.first,val);
+      }
+    }
     
     if (skip_dodgy_event)
     {
@@ -337,7 +407,8 @@ void RootMonitor::DoReceive(eudaq::EventUP evup) {
     my_event_inner_operations_time.Stop();
     previous_event_clustering_time = my_event_inner_operations_time.RealTime();
 
-    if(!_planesInitialized)
+    // Event 0 is for tags etc, so no planes?
+    if(!_planesInitialized && num > 0)
     {
 #ifdef DEBUG
       cout << "Waiting for booking of Histograms..." << endl;
@@ -496,6 +567,7 @@ int main(int argc, const char ** argv) {
   eudaq::Option<unsigned>        corr_planes(op, "cp", "corr_planes",  5, "Minimum amount of planes for track reconstruction in the correlation");
   eudaq::Option<bool>            track_corr(op, "tc", "track_correlation", false, "Using (EXPERIMENTAL) track correlation(true) or cluster correlation(false)");
   eudaq::Option<int>             update(op, "u", "update",  1000, "update every ms");
+  //  eudaq::Option<int>             update(op, "u", "update",  1000, "update every ms");
   eudaq::Option<int>             offline(op, "o", "offline",  0, "running is offlinemode - analyse until event <num>");
   eudaq::Option<std::string>     configfile(op, "c", "config_file"," ", "filename","Config file to use for onlinemon");
   eudaq::OptionFlag do_rootatend (op, "rf","root","Write out root-file after each run");

@@ -7,6 +7,8 @@
 
 #include "EventSanityChecker.hh"
 
+#include <iostream>
+
 // default constructor
 EventSanityChecker::EventSanityChecker() { NPlanes = 0; }
 
@@ -19,4 +21,15 @@ EventSanityChecker::~EventSanityChecker() {
 
 unsigned int EventSanityChecker::getNPlanes() const { return NPlanes; }
 
-void EventSanityChecker::setNPlanes(int NPlanes) { this->NPlanes = NPlanes; }
+void EventSanityChecker::setNPlanes(int NPlanes, std::vector<std::string> ids) {
+  this->NPlanes = NPlanes;
+  m_ids = ids;
+}
+
+void EventSanityChecker::reportIds() const {
+  std::cout << "Initial IDs\n";
+  
+  for(auto &s: m_ids) {
+    std::cout << " " << s << '\n';
+  }
+}

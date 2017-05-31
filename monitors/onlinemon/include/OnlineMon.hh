@@ -116,6 +116,9 @@ public:
   OnlineMonConfiguration mon_configdata; // FIXME
 private:
   string snapshotdir;
+  /** This is here to check that the planes in the first event match subsequent
+      Currently, it only checks total count.
+   */
   EventSanityChecker myevent; // FIXME
   bool useTrackCorrelator;
   TStopwatch my_event_processing_time;
