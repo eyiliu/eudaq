@@ -7,7 +7,6 @@
 #include <cstring>
 #include <exception>
 
-// £rawdata_path = C:\Users\testbeamadmin\Desktop
 // SRAM_READOUT_AT = 60
 // SkipConfiguration = no
 // UseSingleBoardConfigs = no
@@ -17,6 +16,8 @@
 // lvl1_delay = 26
 // modules[121] = 1
 // tlu_trigger_data_delay = 10
+
+
 
 class UsbpixrefRawEvent2StdEventConverter: public eudaq::StdEventConverter{
   typedef std::vector<uint8_t>::const_iterator datait;
@@ -42,6 +43,8 @@ private:
   uint32_t consecutive_lvl1 = 16;
 
   static ATLASFEI4Interpreter<0x00007F00, 0x000000FF> fei4a_intp;
+
+  static const bool m_swap_xy = true;
 };
 
 namespace{
@@ -54,7 +57,7 @@ Converting(eudaq::EventSPC d1, eudaq::StandardEventSP d2, eudaq::ConfigurationSP
   auto ev_raw = std::dynamic_pointer_cast<const eudaq::RawEvent>(d1);
   auto block_n_list = ev_raw->GetBlockNumList();
   for(auto &bn: block_n_list){
-    d2->AddPlane(ConvertPlane(ev_raw->GetBlock(bn), bn+10));//offset 10
+    d2->AddPlane(ConvertPlane(ev_raw->GetBlock(bn), bn+6));//offset 6
   }
   return true;
 }
@@ -70,10 +73,16 @@ ConvertPlane(const std::vector<uint8_t> & data, uint32_t id) const{
   uint32_t lvl1 = 0;
   int colMult = 1;
   int rowMult = 1;
-  
-  plane.SetSizeZS((CHIP_MAX_COL_NORM + 1)*colMult, (CHIP_MAX_ROW_NORM + 1)*rowMult,
-		  0, consecutive_lvl1,
-		  eudaq::StandardPlane::FLAG_DIFFCOORDS|eudaq::StandardPlane::FLAG_ACCUMULATE);
+
+  // If we're swapping axes for display, we need to make them the right size too
+  if(m_swap_xy)
+    plane.SetSizeZS((CHIP_MAX_ROW_NORM + 1)*rowMult, (CHIP_MAX_COL_NORM + 1)*colMult,
+		    0, consecutive_lvl1,
+		    eudaq::StandardPlane::FLAG_DIFFCOORDS|eudaq::StandardPlane::FLAG_ACCUMULATE);
+  else
+    plane.SetSizeZS((CHIP_MAX_COL_NORM + 1)*colMult, (CHIP_MAX_ROW_NORM + 1)*rowMult,
+		    0, consecutive_lvl1,
+		    eudaq::StandardPlane::FLAG_DIFFCOORDS|eudaq::StandardPlane::FLAG_ACCUMULATE);
     
   if(!valid){
     return plane;
@@ -88,11 +97,17 @@ ConvertPlane(const std::vector<uint8_t> & data, uint32_t id) const{
     else{
       //First Hit
       if(getHitData(Word, false, Col, Row, ToT)){
-	plane.PushPixel(Col, Row, ToT, false, lvl1 - 1);
+	if(m_swap_xy)
+	  plane.PushPixel(Row, Col, ToT, false, lvl1 - 1);
+	else
+	  plane.PushPixel(Col, Row, ToT, false, lvl1 - 1);
       }
       //Second Hit
       if(getHitData(Word, true, Col, Row, ToT)){
-	plane.PushPixel(Col, Row, ToT, false, lvl1 - 1);
+	if(m_swap_xy)
+	  plane.PushPixel(Row, Col, ToT, false, lvl1 - 1);
+	else
+	  plane.PushPixel(Col, Row, ToT, false, lvl1 - 1);
       }
     }
   }
