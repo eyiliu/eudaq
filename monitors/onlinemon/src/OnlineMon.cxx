@@ -222,7 +222,6 @@ void RootMonitor::DoReceive(eudaq::EventSP evsp) {
 	return;
       }
     }
-
     stdev = eudaq::StandardEvent::MakeShared();
     eudaq::StdEventConverter::Convert(evsp, stdev, nullptr); //no conf
   }

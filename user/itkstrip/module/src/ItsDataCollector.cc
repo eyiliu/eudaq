@@ -12,7 +12,7 @@ public:
   void DoConnect(eudaq::ConnectionSPC id) override;
   void DoDisconnect(eudaq::ConnectionSPC id) override;
   void DoConfigure() override;
-  void DoStop() override;
+  void DoStartRun() override;
   void DoReset() override;
   void DoReceive(eudaq::ConnectionSPC id, eudaq::EventSP ev) override;
 
@@ -21,7 +21,7 @@ private:
   std::mutex m_mtx_map;
   std::map<eudaq::ConnectionSPC, std::deque<eudaq::EventSPC>> m_conn_evque;
   std::set<eudaq::ConnectionSPC> m_conn_inactive;
-  uint32_t m_print_ev;
+  uint32_t m_print_event;
 };
 
 namespace{
@@ -53,11 +53,11 @@ void ItsDataCollector::DoDisconnect(eudaq::ConnectionSPC idx){
 void ItsDataCollector::DoConfigure(){
   auto conf = GetConfiguration();
   if(conf){
-    m_print_ev = conf->Get("ITS_PRINT_EVENT", 0);
+    m_print_event = conf->Get("ITS_PRINT_EVENT", 0);
   }
 }
 
-void ItsDataCollector::DoStart(){
+void ItsDataCollector::DoStartRun(){
   std::vector<std::string> v_name_producer = {"ni", "fei4", "its_ttc", "its_abc", "tlu"};  
   // std::unique_lock<std::mutex> lk(m_mtx_map);
 }
